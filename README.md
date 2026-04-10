@@ -43,48 +43,35 @@ iAgent/
 
 ## 配置
 
-运行时配置按以下优先级加载：
+首次启动会自动创建配置文件 `~/.config/iAgent/config.json`，填入凭证后重启即可。
 
-1. 环境变量
-2. `IAGENT_CONFIG_PATH` 指向的 JSON 文件
-3. `~/Library/Application Support/iAgent/config.json`
-4. 代码内默认值
+### 配置文件
 
-当前代码里仍保留了一套本机默认值，运行时可被环境变量或 JSON 配置覆盖。
-如果仓库要同步到远端，仍然建议把凭证迁出源码。
-
-示例配置文件：
+`~/.config/iAgent/config.json`（XDG 规范）：
 
 ```json
 {
   "speechToText": {
-    "apiKey": "your-api-key",
+    "apiKey": "",
     "resourceId": "volc.bigasr.auc_turbo"
   },
   "textToSpeech": {
-    "appId": "your-app-id",
-    "accessToken": "your-access-token",
+    "appId": "",
+    "accessToken": "",
     "resourceId": "seed-tts-2.0",
     "voiceType": "zh_female_tianmeitaozi_uranus_bigtts"
-  },
-  "agent": {
-    "workdir": "/Users/yourname",
-    "timeoutSeconds": 45
   }
 }
 ```
 
-常用环境变量：
+凭证获取：<https://console.volcengine.com>
+
+### 环境变量（可选）
 
 - `IAGENT_ASR_API_KEY`
 - `IAGENT_TTS_APP_ID`
 - `IAGENT_TTS_ACCESS_TOKEN`
-- `IAGENT_AGENT_WORKDIR`
-
-自用建议：
-- 平时只改上面这几项就够了
-- 设备索引和 VAD 阈值默认固定走本机配置，不建议再通过环境变量频繁切换
-- 如果确实要调高级参数，用 `config.json` 或直接改 [Configuration.swift](/Users/admin/iCode/iAgent/iAgent/Configuration.swift)
+- `IAGENT_CONFIG_PATH` - 自定义配置文件路径
 
 ### VAD 参数（语音活动检测）
 
