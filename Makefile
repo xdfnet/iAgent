@@ -151,3 +151,7 @@ push:
 	@git add .
 	@git commit -m "$(MSG)"
 	@echo "$(GREEN)✅ 提交完成: $(MSG)$(NC)"
+
+	@echo "$(YELLOW)8. 推送到远程仓库...$(NC)"
+	@git push
+	@echo "$(GREEN)✅ 推送完成$(NC)"
