@@ -1,0 +1,32 @@
+#!/bin/bash
+# 回家检测脚本 - 路由器端
+# 检测手机 MAC 出现在 dhcp.leases 时，触发 iAgent 打招呼
+
+VERSION=2
+PHONE_MAC="F6:85:C2:7F:1D:32"
+IAGENT_HOST="192.168.100.10"
+IAGENT_PORT="8000"
+STATE_FILE="/tmp/welcome-home.state"
+
+log_it() { logger "[welcome-home] $1"; }
+
+greet() {
+    log_it "检测到手机回家，触发 Agent"
+    curl -s -X POST "http://${IAGENT_HOST}:${IAGENT_PORT}/v1/agent/respond" \
+      -H "Content-Type: application/json" \
+      -d '{"transcript": "飞哥回来了，和他打个招呼", "auto_speak": true}' &
+    echo "home" > "$STATE_FILE"
+}
+
+is_home() {
+    grep -qi "$PHONE_MAC" /tmp/dhcp.leases
+}
+
+if is_home; then
+    state=$(cat "$STATE_FILE" 2>/dev/null)
+    if [ "$state" != "home" ]; then
+        greet
+    fi
+else
+    [ "$(cat "$STATE_FILE" 2>/dev/null)" = "home" ] && echo "away" > "$STATE_FILE"
+fi
