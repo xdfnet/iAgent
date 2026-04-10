@@ -1,6 +1,6 @@
 # iAgent
 
-![Version](https://img.shields.io/badge/version-1.0.13-blue)
+![Version](https://img.shields.io/badge/version-1.0.14-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -98,7 +98,7 @@ iAgent/
 - **AVFoundation**：音频播放
 - **Process**：外部进程管理
 
-## 架构å
+## 架构
 
 `AgentControlCenter` 是单例中央协调器（`@MainActor @Observable`），管理所有服务生命周期：
 
