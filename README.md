@@ -1,6 +1,6 @@
 # iAgent
 
-![Version](https://img.shields.io/badge/version-1.0.12-blue)
+![Version](https://img.shields.io/badge/version-1.0.13-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
