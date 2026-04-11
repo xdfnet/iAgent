@@ -13,8 +13,7 @@ final class BehaviorServiceCoverageTests: XCTestCase {
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
                 requiredOnlineConfirmations: 2,
-                requiredOfflineConfirmations: 2,
-                activitySignalWindowSeconds: 300
+                requiredOfflineConfirmations: 2
             )
         )
 
@@ -36,8 +35,7 @@ final class BehaviorServiceCoverageTests: XCTestCase {
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
                 requiredOnlineConfirmations: 2,
-                requiredOfflineConfirmations: 2,
-                activitySignalWindowSeconds: 300
+                requiredOfflineConfirmations: 2
             )
         )
 
@@ -69,8 +67,7 @@ final class BehaviorServiceCoverageTests: XCTestCase {
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
                 requiredOnlineConfirmations: 2,
-                requiredOfflineConfirmations: 2,
-                activitySignalWindowSeconds: 300
+                requiredOfflineConfirmations: 2
             )
         )
 
@@ -95,8 +92,7 @@ final class BehaviorServiceCoverageTests: XCTestCase {
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
                 requiredOnlineConfirmations: 2,
-                requiredOfflineConfirmations: 2,
-                activitySignalWindowSeconds: 300
+                requiredOfflineConfirmations: 2
             )
         )
 
@@ -121,8 +117,7 @@ final class BehaviorServiceCoverageTests: XCTestCase {
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
                 requiredOnlineConfirmations: 1,
-                requiredOfflineConfirmations: 1,
-                activitySignalWindowSeconds: 10
+                requiredOfflineConfirmations: 1
             )
         )
 
@@ -155,8 +150,7 @@ final class BehaviorServiceCoverageTests: XCTestCase {
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
                 requiredOnlineConfirmations: 1,
-                requiredOfflineConfirmations: 1,
-                activitySignalWindowSeconds: 300
+                requiredOfflineConfirmations: 1
             )
         )
 

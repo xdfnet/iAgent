@@ -51,7 +51,6 @@ actor BehaviorService {
         var cooldownSeconds: Double
         var requiredOnlineConfirmations: Int
         var requiredOfflineConfirmations: Int
-        var activitySignalWindowSeconds: Double
 
         static var `default`: Config {
             let settings = Configuration.shared.behavior
@@ -67,8 +66,7 @@ actor BehaviorService {
                 contextTTLSeconds: settings.contextTTLSeconds,
                 cooldownSeconds: settings.cooldownSeconds,
                 requiredOnlineConfirmations: settings.requiredOnlineConfirmations,
-                requiredOfflineConfirmations: settings.requiredOfflineConfirmations,
-                activitySignalWindowSeconds: settings.activitySignalWindowSeconds
+                requiredOfflineConfirmations: settings.requiredOfflineConfirmations
             )
         }
     }

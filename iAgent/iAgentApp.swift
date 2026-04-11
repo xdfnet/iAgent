@@ -13,8 +13,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let controlCenter = AgentControlCenter.shared
     private let maxStatusLength = 10
     private var diagnosticsRefreshTask: Task<Void, Never>?
-    private var behaviorSummaryItem: NSMenuItem?
-    private var behaviorSignalItem: NSMenuItem?
+    private var behaviorStatusItem: NSMenuItem?
     private var behaviorEventItems: [NSMenuItem] = []
     var terminateHandler: (() -> Void)?
 
@@ -96,18 +95,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         behaviorHeaderItem.isEnabled = false
         menu.addItem(behaviorHeaderItem)
 
-        let summaryItem = NSMenuItem(title: "判定: 读取中...", action: nil, keyEquivalent: "")
-        summaryItem.isEnabled = false
-        menu.addItem(summaryItem)
-        behaviorSummaryItem = summaryItem
-
-        let signalItem = NSMenuItem(title: "信号: 读取中...", action: nil, keyEquivalent: "")
-        signalItem.isEnabled = false
-        menu.addItem(signalItem)
-        behaviorSignalItem = signalItem
+        let behaviorStatusMenuItem = NSMenuItem(title: "状态: 正在检测..", action: nil, keyEquivalent: "")
+        behaviorStatusMenuItem.isEnabled = false
+        menu.addItem(behaviorStatusMenuItem)
+        behaviorStatusItem = behaviorStatusMenuItem
 
         behaviorEventItems = (0..<3).map { _ in
-            let item = NSMenuItem(title: "事件: 暂无", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: "日志: 暂无", action: nil, keyEquivalent: "")
             item.isEnabled = false
             menu.addItem(item)
             return item
@@ -187,16 +181,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func refreshBehaviorDiagnosticsMenu() async {
         let snapshot = await controlCenter.behaviorDiagnosticsSnapshot()
-        behaviorSummaryItem?.title = "判定: \(snapshot.summary)"
-        behaviorSignalItem?.title = "信号: \(snapshot.signalSummary)"
+        behaviorStatusItem?.title = behaviorDiagnosticsStatusText(for: snapshot)
 
         for (index, item) in behaviorEventItems.enumerated() {
             if index < snapshot.eventLines.count {
                 item.title = snapshot.eventLines[index]
             } else {
-                item.title = "事件: 暂无"
+                item.title = "日志: 暂无"
             }
         }
+    }
+
+    private func behaviorDiagnosticsStatusText(for snapshot: BehaviorService.DiagnosticsSnapshot) -> String {
+        let normalizedSignal = snapshot.signalSummary
+        if normalizedSignal.contains("iface="), !normalizedSignal.contains("iface=none") {
+            return "状态: 在线"
+        }
+
+        if snapshot.summary.contains("离线已确认") || snapshot.summary.contains("手机当前离线") {
+            return "状态: 离线"
+        }
+
+        return "状态: 正在检测.."
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -113,7 +113,6 @@ struct BehaviorSettings: Codable, Sendable {
     var cooldownSeconds: Double
     var requiredOnlineConfirmations: Int
     var requiredOfflineConfirmations: Int
-    var activitySignalWindowSeconds: Double
 
     nonisolated init(
         enabled: Bool = true,
@@ -124,8 +123,7 @@ struct BehaviorSettings: Codable, Sendable {
         contextTTLSeconds: Double = 10 * 60,
         cooldownSeconds: Double = 0,
         requiredOnlineConfirmations: Int = 2,
-        requiredOfflineConfirmations: Int = 2,
-        activitySignalWindowSeconds: Double = 5 * 60
+        requiredOfflineConfirmations: Int = 2
     ) {
         self.enabled = enabled
         self.routerSSHHost = routerSSHHost
@@ -136,7 +134,6 @@ struct BehaviorSettings: Codable, Sendable {
         self.cooldownSeconds = cooldownSeconds
         self.requiredOnlineConfirmations = requiredOnlineConfirmations
         self.requiredOfflineConfirmations = requiredOfflineConfirmations
-        self.activitySignalWindowSeconds = activitySignalWindowSeconds
     }
 }
 
@@ -364,7 +361,6 @@ private extension Configuration {
         behavior.cooldownSeconds = environment["IAGENT_BEHAVIOR_COOLDOWN_SECONDS"].flatMap(Double.init) ?? behavior.cooldownSeconds
         behavior.requiredOnlineConfirmations = environment["IAGENT_BEHAVIOR_REQUIRED_ONLINE_CONFIRMATIONS"].flatMap(Int.init) ?? behavior.requiredOnlineConfirmations
         behavior.requiredOfflineConfirmations = environment["IAGENT_BEHAVIOR_REQUIRED_OFFLINE_CONFIRMATIONS"].flatMap(Int.init) ?? behavior.requiredOfflineConfirmations
-        behavior.activitySignalWindowSeconds = environment["IAGENT_BEHAVIOR_ACTIVITY_SIGNAL_WINDOW_SECONDS"].flatMap(Double.init) ?? behavior.activitySignalWindowSeconds
     }
 
     nonisolated static func boolValue(_ value: String) -> Bool? {
@@ -415,7 +411,6 @@ private extension BehaviorSettings {
         cooldownSeconds = fileOverride.doubleValue(for: "cooldownSeconds") ?? cooldownSeconds
         requiredOnlineConfirmations = fileOverride.intValue(for: "requiredOnlineConfirmations") ?? requiredOnlineConfirmations
         requiredOfflineConfirmations = fileOverride.intValue(for: "requiredOfflineConfirmations") ?? requiredOfflineConfirmations
-        activitySignalWindowSeconds = fileOverride.doubleValue(for: "activitySignalWindowSeconds") ?? activitySignalWindowSeconds
     }
 }
 

@@ -217,8 +217,7 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         await delegate._refreshBehaviorDiagnosticsMenuForTesting()
         let titles = delegate._menuItemTitlesForTesting()
 
-        XCTAssertTrue(titles.contains("判定: 手机在线已确认"))
-        XCTAssertTrue(titles.contains("信号: 路由器关联探测：ssh=ok, iface=rax0"))
+        XCTAssertTrue(titles.contains("状态: 在线"))
         XCTAssertTrue(titles.contains("12:00:00 手机在线确认完成"))
         XCTAssertTrue(titles.contains("12:00:03 触发 arrived_home，来源 router_assoc:F6:85:C2:7F:1D:32"))
     }
