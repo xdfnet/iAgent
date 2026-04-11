@@ -6,7 +6,9 @@ final class BehaviorServiceCoverageTests: XCTestCase {
         let service = BehaviorService(
             config: .init(
                 enabled: true,
-                monitoredPhoneIP: "192.168.100.243",
+                routerSSHHost: "router",
+                monitoredPhoneMAC: "F6:85:C2:7F:1D:32",
+                monitoredWiFiInterfaces: ["rax0"],
                 pollIntervalSeconds: 60,
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
@@ -23,11 +25,13 @@ final class BehaviorServiceCoverageTests: XCTestCase {
         XCTAssertNil(context)
     }
 
-    func testOfflineToOnlineTransitionRequiresWakeAndUnlockBeforeCreatingContext() async {
+    func testOfflineToOnlineTransitionCreatesArrivedHomeContextAfterStableOnlineConfirmation() async {
         let service = BehaviorService(
             config: .init(
                 enabled: true,
-                monitoredPhoneIP: "192.168.100.243",
+                routerSSHHost: "router",
+                monitoredPhoneMAC: "F6:85:C2:7F:1D:32",
+                monitoredWiFiInterfaces: ["rax0"],
                 pollIntervalSeconds: 60,
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
@@ -44,14 +48,6 @@ final class BehaviorServiceCoverageTests: XCTestCase {
         XCTAssertNil(firstContext)
 
         await service._pollPresenceOnceForTesting()
-        let secondContext = await service._currentContextForTesting()
-        XCTAssertNil(secondContext)
-
-        await service.noteMacDidWake()
-        let afterWakeContext = await service._currentContextForTesting()
-        XCTAssertNil(afterWakeContext)
-
-        await service.noteSessionDidBecomeActive()
         let context = await service._currentContextForTesting()
         XCTAssertEqual(context?.scene, .arrivedHome)
         XCTAssertEqual(context?.message, "飞哥回来了，和他打个招呼")
@@ -66,7 +62,9 @@ final class BehaviorServiceCoverageTests: XCTestCase {
         let service = BehaviorService(
             config: .init(
                 enabled: true,
-                monitoredPhoneIP: "192.168.100.243",
+                routerSSHHost: "router",
+                monitoredPhoneMAC: "F6:85:C2:7F:1D:32",
+                monitoredWiFiInterfaces: ["rax0"],
                 pollIntervalSeconds: 60,
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
@@ -78,10 +76,9 @@ final class BehaviorServiceCoverageTests: XCTestCase {
 
         let now = Date()
         await service._setLastKnownPhonePresenceForTesting(true)
-        await service._setLastMacWakeAtForTesting(now)
-        await service._setLastSessionActivationAtForTesting(now)
         await service._setLastArrivalDetectedAtForTesting(now)
-        await service.noteSessionDidBecomeActive()
+        await service._setPresenceCheckOverrideForTesting { _ in true }
+        await service._pollPresenceOnceForTesting()
 
         let context = await service._currentContextForTesting()
         XCTAssertNil(context)
@@ -91,7 +88,9 @@ final class BehaviorServiceCoverageTests: XCTestCase {
         let service = BehaviorService(
             config: .init(
                 enabled: true,
-                monitoredPhoneIP: "192.168.100.243",
+                routerSSHHost: "router",
+                monitoredPhoneMAC: "F6:85:C2:7F:1D:32",
+                monitoredWiFiInterfaces: ["rax0"],
                 pollIntervalSeconds: 60,
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
@@ -111,11 +110,13 @@ final class BehaviorServiceCoverageTests: XCTestCase {
         XCTAssertNil(context)
     }
 
-    func testWakeAndUnlockOutsideSignalWindowDoNotTriggerContext() async {
+    func testStableOnlineCanTriggerWithoutWakeOrUnlock() async {
         let service = BehaviorService(
             config: .init(
                 enabled: true,
-                monitoredPhoneIP: "192.168.100.243",
+                routerSSHHost: "router",
+                monitoredPhoneMAC: "F6:85:C2:7F:1D:32",
+                monitoredWiFiInterfaces: ["rax0"],
                 pollIntervalSeconds: 60,
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,
@@ -125,31 +126,31 @@ final class BehaviorServiceCoverageTests: XCTestCase {
             )
         )
 
-        let staleTime = Date(timeIntervalSinceNow: -30)
-        await service._setLastKnownPhonePresenceForTesting(true)
-        await service._setLastMacWakeAtForTesting(staleTime)
-        await service._setLastSessionActivationAtForTesting(staleTime)
-        await service.noteSessionDidBecomeActive()
+        await service._setLastKnownPhonePresenceForTesting(false)
+        await service._setPresenceCheckOverrideForTesting { _ in true }
+        await service._pollPresenceOnceForTesting()
 
         let context = await service._currentContextForTesting()
-        XCTAssertNil(context)
+        XCTAssertEqual(context?.scene, .arrivedHome)
     }
 
-    func testARPOutputRecognizesResolvedNeighbor() {
-        let output = "? (192.168.100.243) at 1c:xx:xx:xx:xx:xx on en0 ifscope [ethernet]"
-        XCTAssertTrue(BehaviorService._arpOutputIndicatesResolvedNeighborForTesting(output))
+    func testAssociatedInterfaceParsesDetectedInterface() {
+        let output = "associated:rax0"
+        XCTAssertEqual(BehaviorService._associatedInterfaceForTesting(output), "rax0")
     }
 
-    func testARPOutputRejectsIncompleteNeighbor() {
-        let output = "? (192.168.100.243) at (incomplete) on en0 ifscope [ethernet]"
-        XCTAssertFalse(BehaviorService._arpOutputIndicatesResolvedNeighborForTesting(output))
+    func testAssociatedInterfaceRejectsNonAssociatedOutput() {
+        let output = "not-associated"
+        XCTAssertNil(BehaviorService._associatedInterfaceForTesting(output))
     }
 
     func testExpiredContextDowngradesDiagnosticsSummary() async {
         let service = BehaviorService(
             config: .init(
                 enabled: true,
-                monitoredPhoneIP: "192.168.100.243",
+                routerSSHHost: "router",
+                monitoredPhoneMAC: "F6:85:C2:7F:1D:32",
+                monitoredWiFiInterfaces: ["rax0"],
                 pollIntervalSeconds: 60,
                 contextTTLSeconds: 600,
                 cooldownSeconds: 1800,

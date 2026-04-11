@@ -9,15 +9,17 @@ import Foundation
 
 actor BehaviorService {
     struct PresenceSignals: Sendable {
-        let pingSucceeded: Bool
-        let arpResolved: Bool
+        let routerReachable: Bool
+        let associatedInterface: String?
 
         var isConfirmedPresent: Bool {
-            pingSucceeded && arpResolved
+            associatedInterface != nil
         }
 
         var summaryText: String {
-            "ping=\(pingSucceeded ? "ok" : "fail"), arp=\(arpResolved ? "ok" : "fail")"
+            let sshSummary = "ssh=\(routerReachable ? "ok" : "fail")"
+            let interfaceSummary = "iface=\(associatedInterface ?? "none")"
+            return "\(sshSummary), \(interfaceSummary)"
         }
     }
 
@@ -41,7 +43,9 @@ actor BehaviorService {
 
     struct Config: Sendable {
         var enabled: Bool
-        var monitoredPhoneIP: String
+        var routerSSHHost: String
+        var monitoredPhoneMAC: String
+        var monitoredWiFiInterfaces: [String]
         var pollIntervalSeconds: Double
         var contextTTLSeconds: Double
         var cooldownSeconds: Double
@@ -53,7 +57,12 @@ actor BehaviorService {
             let settings = Configuration.shared.behavior
             return Config(
                 enabled: settings.enabled,
-                monitoredPhoneIP: settings.monitoredPhoneIP,
+                routerSSHHost: settings.routerSSHHost,
+                monitoredPhoneMAC: settings.monitoredPhoneMAC,
+                monitoredWiFiInterfaces: settings.monitoredWiFiInterfaces
+                    .split(separator: ",")
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty },
                 pollIntervalSeconds: settings.pollIntervalSeconds,
                 contextTTLSeconds: settings.contextTTLSeconds,
                 cooldownSeconds: settings.cooldownSeconds,
@@ -65,12 +74,12 @@ actor BehaviorService {
     }
 
     private let config: Config
+    private let contextEventStreamStorage: AsyncStream<Context>
+    private let contextEventContinuation: AsyncStream<Context>.Continuation
     private var monitoringTask: Task<Void, Never>?
     private var activeContext: Context?
     private var lastKnownPhonePresence: Bool?
     private var lastArrivalDetectedAt: Date?
-    private var lastMacWakeAt: Date?
-    private var lastSessionActivationAt: Date?
     private var consecutiveOnlineDetections = 0
     private var consecutiveOfflineDetections = 0
     private var lastDecisionSummary = "等待行为信号"
@@ -81,7 +90,14 @@ actor BehaviorService {
 #endif
 
     init(config: Config = .default) {
+        var continuation: AsyncStream<Context>.Continuation?
+        self.contextEventStreamStorage = AsyncStream { continuation = $0 }
+        self.contextEventContinuation = continuation!
         self.config = config
+    }
+
+    func contextEventStream() -> AsyncStream<Context> {
+        contextEventStreamStorage
     }
 
     func startMonitoring() {
@@ -89,7 +105,7 @@ actor BehaviorService {
         guard monitoringTask == nil else { return }
 
         lastDecisionSummary = "行为监控已启动"
-        recordEvent("开始监控手机在线，目标 \(config.monitoredPhoneIP)")
+        recordEvent("开始监控手机在线，目标 \(config.monitoredPhoneMAC)")
 
         monitoringTask = Task { [pollIntervalSeconds = config.pollIntervalSeconds] in
             await pollPresence()
@@ -109,8 +125,6 @@ actor BehaviorService {
         monitoringTask?.cancel()
         monitoringTask = nil
         lastKnownPhonePresence = nil
-        lastMacWakeAt = nil
-        lastSessionActivationAt = nil
         consecutiveOnlineDetections = 0
         consecutiveOfflineDetections = 0
         lastDecisionSummary = "行为监控已停止"
@@ -144,26 +158,17 @@ actor BehaviorService {
         )
     }
 
-    func noteMacDidWake() {
-        lastMacWakeAt = Date()
-        lastDecisionSummary = "已收到 Mac 唤醒信号，等待解锁与手机在线"
-        recordEvent("收到系统唤醒事件")
-        maybeTriggerArrivedHome(source: "mac_wake")
-    }
-
-    func noteSessionDidBecomeActive() {
-        lastSessionActivationAt = Date()
-        lastDecisionSummary = "已收到会话激活信号，等待手机在线与唤醒条件"
-        recordEvent("收到会话激活/解锁事件")
-        maybeTriggerArrivedHome(source: "session_active")
-    }
-
     private func pollPresence() async {
-        let monitoredPhoneIP = config.monitoredPhoneIP.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard config.enabled, !monitoredPhoneIP.isEmpty else { return }
+        let monitoredPhoneMAC = config.monitoredPhoneMAC.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard config.enabled, !monitoredPhoneMAC.isEmpty else { return }
+        guard !config.monitoredWiFiInterfaces.isEmpty else {
+            lastDecisionSummary = "未配置路由器无线接口"
+            lastSignalSummary = "路由器关联探测：未配置接口"
+            return
+        }
 
-        let isPresent = await isPhonePresent(ipAddress: monitoredPhoneIP)
-        handlePhonePresence(isPresent, source: "phone_presence:\(monitoredPhoneIP)")
+        let isPresent = await isPhonePresent(target: monitoredPhoneMAC)
+        handlePhonePresence(isPresent, source: "router_assoc:\(monitoredPhoneMAC)")
     }
 
     private func handlePhonePresence(_ isPresent: Bool, source: String) {
@@ -181,7 +186,7 @@ actor BehaviorService {
         guard let stablePhonePresence = lastKnownPhonePresence else {
             if isPresent, consecutiveOnlineDetections >= onlineThreshold {
                 lastKnownPhonePresence = true
-                lastDecisionSummary = "手机在线已确认，等待唤醒与解锁"
+                lastDecisionSummary = "手机在线已确认"
                 recordEvent("手机在线确认完成")
                 maybeTriggerArrivedHome(source: source)
             } else if !isPresent, consecutiveOfflineDetections >= offlineThreshold {
@@ -201,7 +206,7 @@ actor BehaviorService {
                 lastDecisionSummary = "手机离线已确认"
                 recordEvent("手机离线确认完成")
             } else if isPresent {
-                lastDecisionSummary = "手机在线，等待唤醒与解锁"
+                lastDecisionSummary = "手机在线"
             }
             return
         }
@@ -212,7 +217,7 @@ actor BehaviorService {
         }
 
         lastKnownPhonePresence = true
-        lastDecisionSummary = "手机在线已确认，等待唤醒与解锁"
+        lastDecisionSummary = "手机在线已确认"
         recordEvent("手机在线确认完成")
         maybeTriggerArrivedHome(source: source)
     }
@@ -220,14 +225,6 @@ actor BehaviorService {
     private func maybeTriggerArrivedHome(source: String, now: Date = Date()) {
         guard lastKnownPhonePresence == true else {
             lastDecisionSummary = "等待手机在线"
-            return
-        }
-        guard hasRecentSignal(lastMacWakeAt, now: now) else {
-            lastDecisionSummary = "手机在线已确认，等待最近一次 Mac 唤醒"
-            return
-        }
-        guard hasRecentSignal(lastSessionActivationAt, now: now) else {
-            lastDecisionSummary = "手机在线与唤醒已确认，等待解锁/会话激活"
             return
         }
 
@@ -247,6 +244,7 @@ actor BehaviorService {
         lastDecisionSummary = "已生成 arrived_home 行为上下文"
 
         recordEvent("触发 arrived_home，来源 \(source)")
+        contextEventContinuation.yield(activeContext!)
         print("[BehaviorService] detected arrived_home, source=\(source)")
     }
 
@@ -259,42 +257,41 @@ actor BehaviorService {
         recordEvent("\(context.scene.rawValue) 上下文已过期", now: now)
     }
 
-    private func hasRecentSignal(_ timestamp: Date?, now: Date) -> Bool {
-        guard let timestamp else { return false }
-        return now.timeIntervalSince(timestamp) <= config.activitySignalWindowSeconds
-    }
-
-    private func isPhonePresent(ipAddress: String) async -> Bool {
+    private func isPhonePresent(target: String) async -> Bool {
 #if DEBUG
         if let presenceCheckOverride {
-            return await presenceCheckOverride(ipAddress)
+            return await presenceCheckOverride(target)
         }
 #endif
-        return await runPresenceCheck(ipAddress)
+        return await runPresenceCheck(target)
     }
 
-    private func runPresenceCheck(_ ipAddress: String) async -> Bool {
-        let signals = await probePresenceSignals(ipAddress)
-        lastSignalSummary = "手机在线探测：\(signals.summaryText)"
-        if signals.pingSucceeded, !signals.arpResolved {
-            recordEvent("ping 可达，但 arp 未解析 \(ipAddress)")
-            print("[BehaviorService] ping ok but arp unresolved, ip=\(ipAddress)")
-        }
+    private func runPresenceCheck(_ monitoredPhoneMAC: String) async -> Bool {
+        let signals = await probePresenceSignals(monitoredPhoneMAC)
+        lastSignalSummary = "路由器关联探测：\(signals.summaryText)"
         return signals.isConfirmedPresent
     }
 
-    private func probePresenceSignals(_ ipAddress: String) async -> PresenceSignals {
-        let pingSucceeded = await runShellCommand(
-            "ping -c 1 -W 1000 \(ExecutableLocator.shellQuote(ipAddress)) >/dev/null 2>&1"
-        ).terminationStatus == 0
-
-        let arpCommand = "arp -n \(ExecutableLocator.shellQuote(ipAddress)) 2>/dev/null || true"
-        let arpOutput = await runShellCommand(arpCommand).standardOutput
-        let arpResolved = Self.arpOutputIndicatesResolvedNeighbor(arpOutput)
+    private func probePresenceSignals(_ monitoredPhoneMAC: String) async -> PresenceSignals {
+        let normalizedMAC = monitoredPhoneMAC.lowercased()
+        let interfaces = config.monitoredWiFiInterfaces.map(ExecutableLocator.shellQuote).joined(separator: " ")
+        let remoteCommand = """
+        for ifname in \(interfaces); do
+          if iwinfo "$ifname" assoclist 2>/dev/null | grep -iq \(ExecutableLocator.shellQuote(normalizedMAC)); then
+            echo "associated:$ifname"
+            exit 0
+          fi
+        done
+        echo "not-associated"
+        exit 3
+        """
+        let sshCommand = "ssh \(ExecutableLocator.shellQuote(config.routerSSHHost)) \(ExecutableLocator.shellQuote(remoteCommand))"
+        let result = await runShellCommand(sshCommand)
+        let associatedInterface = Self.associatedInterface(from: result.standardOutput)
 
         return PresenceSignals(
-            pingSucceeded: pingSucceeded,
-            arpResolved: arpResolved
+            routerReachable: result.terminationStatus != 255,
+            associatedInterface: associatedInterface
         )
     }
 
@@ -327,12 +324,13 @@ actor BehaviorService {
         }
     }
 
-    nonisolated static func arpOutputIndicatesResolvedNeighbor(_ output: String) -> Bool {
+    nonisolated static func associatedInterface(from output: String) -> String? {
         let normalized = output.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalized.isEmpty else { return false }
-        guard !normalized.contains("no entry") else { return false }
-        guard !normalized.contains("incomplete") else { return false }
-        return normalized.contains(" at ")
+        guard !normalized.isEmpty else { return nil }
+        guard normalized.hasPrefix("associated:") else { return nil }
+        let interface = normalized.replacingOccurrences(of: "associated:", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return interface.isEmpty ? nil : interface
     }
 
     private func recordEvent(_ message: String, now: Date = Date()) {
@@ -381,16 +379,8 @@ extension BehaviorService {
         consecutiveOfflineDetections = offline
     }
 
-    func _setLastMacWakeAtForTesting(_ value: Date?) {
-        lastMacWakeAt = value
-    }
-
-    func _setLastSessionActivationAtForTesting(_ value: Date?) {
-        lastSessionActivationAt = value
-    }
-
-    nonisolated static func _arpOutputIndicatesResolvedNeighborForTesting(_ output: String) -> Bool {
-        arpOutputIndicatesResolvedNeighbor(output)
+    nonisolated static func _associatedInterfaceForTesting(_ output: String) -> String? {
+        associatedInterface(from: output)
     }
 
     func _setDiagnosticsForTesting(summary: String, signalSummary: String, eventLines: [String]) {

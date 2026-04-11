@@ -12,7 +12,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private let controlCenter = AgentControlCenter.shared
     private let maxStatusLength = 10
-    private var workspaceObservers: [NSObjectProtocol] = []
     private var diagnosticsRefreshTask: Task<Void, Never>?
     private var behaviorSummaryItem: NSMenuItem?
     private var behaviorSignalItem: NSMenuItem?
@@ -29,10 +28,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 2. 异步启动服务
         controlCenter.bootstrap()
 
-        // 3. 监听系统唤醒与解锁事件，作为行为驱动的辅助信号
-        observeWorkspaceEvents()
+        // 3. 刷新行为诊断展示
         startBehaviorDiagnosticsRefreshLoop()
-        
+
         // 4. 绑定状态变化，直接驱动菜单栏 UI
         observeControlCenter()
     }
@@ -49,36 +47,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             }
         }
-    }
-
-    private func observeWorkspaceEvents() {
-        let notificationCenter = NSWorkspace.shared.notificationCenter
-
-        workspaceObservers.append(
-            notificationCenter.addObserver(
-                forName: NSWorkspace.didWakeNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.controlCenter.noteMacDidWake()
-                    await self?.refreshBehaviorDiagnosticsMenu()
-                }
-            }
-        )
-
-        workspaceObservers.append(
-            notificationCenter.addObserver(
-                forName: NSWorkspace.sessionDidBecomeActiveNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.controlCenter.noteSessionDidBecomeActive()
-                    await self?.refreshBehaviorDiagnosticsMenu()
-                }
-            }
-        )
     }
 
     private func observeControlCenter() {
@@ -128,7 +96,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         behaviorHeaderItem.isEnabled = false
         menu.addItem(behaviorHeaderItem)
 
-        let summaryItem = NSMenuItem(title: "状态: 读取中...", action: nil, keyEquivalent: "")
+        let summaryItem = NSMenuItem(title: "判定: 读取中...", action: nil, keyEquivalent: "")
         summaryItem.isEnabled = false
         menu.addItem(summaryItem)
         behaviorSummaryItem = summaryItem
@@ -219,7 +187,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func refreshBehaviorDiagnosticsMenu() async {
         let snapshot = await controlCenter.behaviorDiagnosticsSnapshot()
-        behaviorSummaryItem?.title = "状态: \(snapshot.summary)"
+        behaviorSummaryItem?.title = "判定: \(snapshot.summary)"
         behaviorSignalItem?.title = "信号: \(snapshot.signalSummary)"
 
         for (index, item) in behaviorEventItems.enumerated() {
@@ -234,9 +202,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         diagnosticsRefreshTask?.cancel()
         diagnosticsRefreshTask = nil
-        let notificationCenter = NSWorkspace.shared.notificationCenter
-        workspaceObservers.forEach { notificationCenter.removeObserver($0) }
-        workspaceObservers.removeAll()
     }
 
     @objc private func quitApp() {

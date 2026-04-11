@@ -83,4 +83,40 @@ final class AgentControlCenterPipelineTests: XCTestCase {
         XCTAssertFalse(secondPrompt.contains("飞哥回来了，和他打个招呼"))
         XCTAssertTrue(secondPrompt.contains("再来一次"))
     }
+
+    func testArrivedHomeTriggerRunsAgentAndPlaybackImmediately() async throws {
+        let center = AgentControlCenter()
+        let synthCount = AsyncCounter()
+        let playCount = AsyncCounter()
+
+        center._setHealthForTesting(.healthy)
+        center._setTestHooksForTesting(
+            .init(
+                transcribeAudio: nil,
+                executeAgent: { text in
+                    XCTAssertEqual(text, "请主动和飞哥打个招呼，欢迎他回家。")
+                    return AgentService.Response(replyText: "飞哥，欢迎回家。", sessionId: nil)
+                },
+                synthesizeText: { text in
+                    XCTAssertEqual(text, "飞哥，欢迎回家。")
+                    await synthCount.increment()
+                    return Data([0x01, 0x02])
+                },
+                playAudio: { _, interrupt in
+                    XCTAssertTrue(interrupt)
+                    await playCount.increment()
+                }
+            )
+        )
+
+        try await center._simulateBehaviorTriggerForTesting("飞哥回来了，和他打个招呼")
+
+        XCTAssertEqual(center.latestConversation.user, "飞哥回来了")
+        XCTAssertEqual(center.latestConversation.assistant, "飞哥，欢迎回家。")
+        XCTAssertEqual(center.statusMessage, "播报完成")
+        let synthCountValue = await synthCount.get()
+        let playCountValue = await playCount.get()
+        XCTAssertEqual(synthCountValue, 1)
+        XCTAssertEqual(playCountValue, 1)
+    }
 }

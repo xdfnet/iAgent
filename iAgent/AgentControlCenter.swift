@@ -259,8 +259,10 @@ final class AgentControlCenter {
     private var stateObserverTask: Task<Void, Never>?
     private var playbackObserverTask: Task<Void, Never>?
     private var voiceErrorObserverTask: Task<Void, Never>?
+    private var behaviorObserverTask: Task<Void, Never>?
     private let voiceRecoveryController = VoiceCaptureRecoveryController()
     private var isProcessingVoiceTurn = false
+    private var isProcessingBehaviorTurn = false
     var testHooks: TestHooks?
 #if DEBUG
     private var requiredAgentExecutableNameOverrideForTesting: String?
@@ -302,7 +304,7 @@ final class AgentControlCenter {
 
         let status = statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         if status.isEmpty {
-            return health == .healthy ? "监听中" : "待机"
+            return health == .healthy ? "待命中" : "待机"
         }
 
         if status.contains("恢复") || status.contains("自动重试") {
@@ -333,7 +335,7 @@ final class AgentControlCenter {
             return "识别中"
         }
         if status.hasPrefix("正在监听") || status.hasPrefix("等待说话") {
-            return "监听中"
+            return "待命中"
         }
         if status.hasPrefix("播报完成") || status.hasPrefix("回复") || status.hasPrefix("识别完成") {
             return "已完成"
@@ -377,6 +379,7 @@ final class AgentControlCenter {
             startStateObserver()
             startPlaybackObserver()
             startVoiceErrorObserver()
+            startBehaviorObserver()
 
             // 启动语音监听
             try await voiceService.startListening()
@@ -405,6 +408,8 @@ final class AgentControlCenter {
         playbackObserverTask = nil
         voiceErrorObserverTask?.cancel()
         voiceErrorObserverTask = nil
+        behaviorObserverTask?.cancel()
+        behaviorObserverTask = nil
         voiceTask?.cancel()
         voiceTask = nil
 
@@ -425,18 +430,6 @@ final class AgentControlCenter {
             } else {
                 await startService()
             }
-        }
-    }
-
-    func noteMacDidWake() {
-        Task {
-            await behaviorService.noteMacDidWake()
-        }
-    }
-
-    func noteSessionDidBecomeActive() {
-        Task {
-            await behaviorService.noteSessionDidBecomeActive()
         }
     }
 
@@ -566,6 +559,18 @@ final class AgentControlCenter {
                         await self?.attemptVoiceRecovery(reason: reason)
                     }
                 )
+            }
+        }
+    }
+
+    private func startBehaviorObserver() {
+        behaviorObserverTask?.cancel()
+        behaviorObserverTask = Task { [weak self] in
+            guard let self else { return }
+            let stream = await behaviorService.contextEventStream()
+            for await context in stream {
+                guard !Task.isCancelled else { return }
+                try? await self.handleBehaviorContextTrigger(context)
             }
         }
     }
@@ -752,6 +757,45 @@ final class AgentControlCenter {
         }
     }
 
+    private func handleBehaviorContextTrigger(_ context: BehaviorService.Context) async throws {
+        guard health == .healthy else { return }
+        guard !isProcessingVoiceTurn else { return }
+        guard !isProcessingBehaviorTurn else { return }
+
+        let behaviorContext = await behaviorService.consumePromptContextIfAvailable()
+        guard let behaviorContext else { return }
+
+        isProcessingBehaviorTurn = true
+        defer { isProcessingBehaviorTurn = false }
+
+        let displayText = "飞哥回来了"
+        let proactivePrompt = "请主动和飞哥打个招呼，欢迎他回家。"
+
+        latestConversation = AgentConversation(user: displayText, assistant: "")
+        statusMessage = "Agent处理中..."
+
+        let response: AgentService.Response
+        do {
+            response = try await executeAgent(text: proactivePrompt, behaviorContextOverride: behaviorContext)
+        } catch {
+            statusMessage = "Agent失败: \(error.localizedDescription)"
+            throw error
+        }
+
+        latestConversation = AgentConversation(user: displayText, assistant: response.replyText)
+        statusMessage = "回复已返回"
+        await conversationMemory.addTurn(user: displayText, assistant: response.replyText)
+
+        do {
+            try await speakTextInternal(response.replyText)
+        } catch {
+            statusMessage = "播报失败: \(error.localizedDescription)"
+            throw error
+        }
+
+        print("[AgentControlCenter] 行为触发播报完成，scene=\(context.scene.rawValue), source=\(context.source)")
+    }
+
     private func speakTextInternal(_ text: String) async throws {
         statusMessage = "播报中"
         print("[AgentControlCenter] 开始播报，text=\(formatLogText(text))")
@@ -798,11 +842,19 @@ final class AgentControlCenter {
         }
     }
 
-    private func executeAgent(text: String) async throws -> AgentService.Response {
+    private func executeAgent(
+        text: String,
+        behaviorContextOverride: String? = nil
+    ) async throws -> AgentService.Response {
         if let handler = testHooks?.executeAgent {
             return try await handler(text)
         }
-        let behaviorContext = await behaviorService.consumePromptContextIfAvailable()
+        let behaviorContext: String?
+        if let behaviorContextOverride {
+            behaviorContext = behaviorContextOverride
+        } else {
+            behaviorContext = await behaviorService.consumePromptContextIfAvailable()
+        }
         return try await agentService.execute(
             prompt: buildAgentPrompt(userText: text, behaviorContext: behaviorContext)
         )
@@ -889,6 +941,28 @@ final class AgentControlCenter {
 
     func _executeAgentForTesting(_ text: String) async throws -> AgentService.Response {
         try await executeAgent(text: text)
+    }
+
+    func _simulateBehaviorTriggerForTesting(_ message: String) async throws {
+        let now = Date()
+        await behaviorService._setActiveContextForTesting(
+            .init(
+                scene: .arrivedHome,
+                message: message,
+                source: "testing",
+                detectedAt: now,
+                expiresAt: now.addingTimeInterval(600)
+            )
+        )
+        try await handleBehaviorContextTrigger(
+            .init(
+                scene: .arrivedHome,
+                message: message,
+                source: "testing",
+                detectedAt: now,
+                expiresAt: now.addingTimeInterval(600)
+            )
+        )
     }
 
     func _synthesizeSpeechForTesting(_ text: String) async throws -> Data {

@@ -105,7 +105,9 @@ struct AgentSettings: Codable, Sendable {
 
 struct BehaviorSettings: Codable, Sendable {
     var enabled: Bool
-    var monitoredPhoneIP: String
+    var routerSSHHost: String
+    var monitoredPhoneMAC: String
+    var monitoredWiFiInterfaces: String
     var pollIntervalSeconds: Double
     var contextTTLSeconds: Double
     var cooldownSeconds: Double
@@ -115,16 +117,20 @@ struct BehaviorSettings: Codable, Sendable {
 
     nonisolated init(
         enabled: Bool = true,
-        monitoredPhoneIP: String = "192.168.100.243",
-        pollIntervalSeconds: Double = 15,
+        routerSSHHost: String = "router",
+        monitoredPhoneMAC: String = "F6:85:C2:7F:1D:32",
+        monitoredWiFiInterfaces: String = "rax0",
+        pollIntervalSeconds: Double = 5,
         contextTTLSeconds: Double = 10 * 60,
-        cooldownSeconds: Double = 30 * 60,
+        cooldownSeconds: Double = 0,
         requiredOnlineConfirmations: Int = 2,
         requiredOfflineConfirmations: Int = 2,
         activitySignalWindowSeconds: Double = 5 * 60
     ) {
         self.enabled = enabled
-        self.monitoredPhoneIP = monitoredPhoneIP
+        self.routerSSHHost = routerSSHHost
+        self.monitoredPhoneMAC = monitoredPhoneMAC
+        self.monitoredWiFiInterfaces = monitoredWiFiInterfaces
         self.pollIntervalSeconds = pollIntervalSeconds
         self.contextTTLSeconds = contextTTLSeconds
         self.cooldownSeconds = cooldownSeconds
@@ -350,7 +356,9 @@ private extension Configuration {
         agent.timeoutSeconds = environment["IAGENT_AGENT_TIMEOUT_SECONDS"].flatMap(Int.init) ?? agent.timeoutSeconds
 
         behavior.enabled = environment["IAGENT_BEHAVIOR_ENABLED"].flatMap(Self.boolValue) ?? behavior.enabled
-        behavior.monitoredPhoneIP = environment["IAGENT_BEHAVIOR_PHONE_IP"]?.trimmedNonEmpty ?? behavior.monitoredPhoneIP
+        behavior.routerSSHHost = environment["IAGENT_BEHAVIOR_ROUTER_SSH_HOST"]?.trimmedNonEmpty ?? behavior.routerSSHHost
+        behavior.monitoredPhoneMAC = environment["IAGENT_BEHAVIOR_PHONE_MAC"]?.trimmedNonEmpty ?? behavior.monitoredPhoneMAC
+        behavior.monitoredWiFiInterfaces = environment["IAGENT_BEHAVIOR_WIFI_INTERFACES"]?.trimmedNonEmpty ?? behavior.monitoredWiFiInterfaces
         behavior.pollIntervalSeconds = environment["IAGENT_BEHAVIOR_POLL_INTERVAL_SECONDS"].flatMap(Double.init) ?? behavior.pollIntervalSeconds
         behavior.contextTTLSeconds = environment["IAGENT_BEHAVIOR_CONTEXT_TTL_SECONDS"].flatMap(Double.init) ?? behavior.contextTTLSeconds
         behavior.cooldownSeconds = environment["IAGENT_BEHAVIOR_COOLDOWN_SECONDS"].flatMap(Double.init) ?? behavior.cooldownSeconds
@@ -399,7 +407,9 @@ private extension AgentSettings {
 private extension BehaviorSettings {
     nonisolated mutating func apply(fileOverride: [String: Any]) {
         enabled = fileOverride.boolValue(for: "enabled") ?? enabled
-        monitoredPhoneIP = fileOverride.stringValue(for: "monitoredPhoneIP") ?? monitoredPhoneIP
+        routerSSHHost = fileOverride.stringValue(for: "routerSSHHost") ?? routerSSHHost
+        monitoredPhoneMAC = fileOverride.stringValue(for: "monitoredPhoneMAC") ?? monitoredPhoneMAC
+        monitoredWiFiInterfaces = fileOverride.stringValue(for: "monitoredWiFiInterfaces") ?? monitoredWiFiInterfaces
         pollIntervalSeconds = fileOverride.doubleValue(for: "pollIntervalSeconds") ?? pollIntervalSeconds
         contextTTLSeconds = fileOverride.doubleValue(for: "contextTTLSeconds") ?? contextTTLSeconds
         cooldownSeconds = fileOverride.doubleValue(for: "cooldownSeconds") ?? cooldownSeconds

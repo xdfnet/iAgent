@@ -54,7 +54,7 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         AgentControlCenter.shared.statusMessage = "正在监听..."
         AgentControlCenter.shared.isPlaying = false
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 监听中")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 待命中")
     }
 
     func testAppDelegateObservationAndQuitSelector() async {
@@ -71,7 +71,7 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         AgentControlCenter.shared.isPlaying = false
         AgentControlCenter.shared.statusMessage = "正在监听..."
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 监听中")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 待命中")
 
         _ = delegate.perform(NSSelectorFromString("quitApp"))
         delegate.applicationWillTerminate(Notification(name: Notification.Name("unit-test-will-terminate")))
@@ -206,20 +206,20 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         delegate._setupMenuForTesting()
 
         await AgentControlCenter.shared._setBehaviorDiagnosticsForTesting(
-            summary: "手机在线已确认，等待最近一次 Mac 唤醒",
-            signalSummary: "手机在线探测：ping=ok, arp=ok",
+            summary: "手机在线已确认",
+            signalSummary: "路由器关联探测：ssh=ok, iface=rax0",
             eventLines: [
-                "12:00:00 收到系统唤醒事件",
-                "12:00:03 收到会话激活/解锁事件"
+                "12:00:00 手机在线确认完成",
+                "12:00:03 触发 arrived_home，来源 router_assoc:F6:85:C2:7F:1D:32"
             ]
         )
 
         await delegate._refreshBehaviorDiagnosticsMenuForTesting()
         let titles = delegate._menuItemTitlesForTesting()
 
-        XCTAssertTrue(titles.contains("状态: 手机在线已确认，等待最近一次 Mac 唤醒"))
-        XCTAssertTrue(titles.contains("信号: 手机在线探测：ping=ok, arp=ok"))
-        XCTAssertTrue(titles.contains("12:00:00 收到系统唤醒事件"))
-        XCTAssertTrue(titles.contains("12:00:03 收到会话激活/解锁事件"))
+        XCTAssertTrue(titles.contains("判定: 手机在线已确认"))
+        XCTAssertTrue(titles.contains("信号: 路由器关联探测：ssh=ok, iface=rax0"))
+        XCTAssertTrue(titles.contains("12:00:00 手机在线确认完成"))
+        XCTAssertTrue(titles.contains("12:00:03 触发 arrived_home，来源 router_assoc:F6:85:C2:7F:1D:32"))
     }
 }
