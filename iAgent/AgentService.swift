@@ -3,7 +3,7 @@
 //  iAgent
 //
 //  Agent 执行器服务，对应 Python 版本的 agent.py
-//  当前仅支持 Qwen CLI 调用
+//  当前默认使用 Claude Code CLI 调用
 //
 
 import Foundation
@@ -69,9 +69,10 @@ func buildAgentPrompt(userText: String, behaviorContext: String? = nil) -> Strin
 // MARK: - Agent 执行器服务
 
 actor AgentService {
-    static let executableName = "qwen"
+    static let executableName = "claude"
 
     struct Config: Sendable {
+        // 历史命名保留为 qwenPath，用作自定义 Agent CLI 路径覆盖。
         var qwenPath: String?
         var workdir: String
         var timeoutSeconds: Int
@@ -109,7 +110,7 @@ actor AgentService {
     func execute(prompt: String, sessionId: String? = nil) async throws -> Response {
         let effectiveSessionId = sessionId ?? currentSessionId
 
-        let result = try await executeQwen(prompt: prompt, sessionId: effectiveSessionId)
+        let result = try await executeClaudeCode(prompt: prompt, sessionId: effectiveSessionId)
         let replyText = result.replyText
         let newSessionId = result.sessionId
 
@@ -120,9 +121,16 @@ actor AgentService {
         return Response(replyText: replyText, sessionId: newSessionId)
     }
 
-    /// 执行 Qwen CLI
-    private func executeQwen(prompt: String, sessionId: String?) async throws -> Response {
-        var arguments = ["-p", prompt, "--output-format", "json"]
+    /// 执行 Claude Code CLI
+    private func executeClaudeCode(prompt: String, sessionId: String?) async throws -> Response {
+        var arguments = [
+            "-p",
+            prompt,
+            "--output-format",
+            "json",
+            "--permission-mode",
+            "bypassPermissions"
+        ]
 
         if let sessionId = sessionId {
             arguments += ["--resume", sessionId]
@@ -133,7 +141,7 @@ actor AgentService {
             arguments: arguments
         )
 
-        return try parseQwenOutput(output)
+        return try parseAgentOutput(output)
     }
 
     /// 运行外部进程并捕获输出
@@ -254,44 +262,36 @@ actor AgentService {
         }
     }
 
-    /// 解析 Qwen CLI 输出
-    private func parseQwenOutput(_ output: String) throws -> Response {
+    /// 解析 Agent CLI 输出
+    private func parseAgentOutput(_ output: String) throws -> Response {
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard let data = trimmed.data(using: .utf8) else {
             throw AgentError.parseError("无法解析输出")
         }
 
-        // Qwen 返回 JSON 数组
-        guard let messages = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            throw AgentError.parseError("Qwen 返回格式异常")
+        guard let message = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw AgentError.parseError("Claude Code 返回格式异常")
+        }
+        return try parseClaudeResult(message)
+    }
+
+    private func parseClaudeResult(_ message: [String: Any]) throws -> Response {
+        let type = message["type"] as? String
+        let subtype = message["subtype"] as? String
+        let isSuccess = type == "result" || subtype == "success"
+        guard isSuccess else {
+            throw AgentError.parseError("Claude Code 返回格式异常")
         }
 
-        var replyText = ""
-        var sessionId: String?
-
-        for msg in messages {
-            let type = msg["type"] as? String
-            let subtype = msg["subtype"] as? String
-
-            if type == "result" || subtype == "success" {
-                if let content = msg["message"] as? [String: Any],
-                   let text = content["content"] as? String {
-                    replyText = text
-                } else if let text = msg["result"] as? String {
-                    replyText = text
-                }
-            }
-
-            if let sid = msg["session_id"] as? String, !sid.isEmpty {
-                sessionId = sid
-            }
+        let replyText = (message["result"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !replyText.isEmpty else {
+            throw AgentError.parseError("Claude Code 没有返回可播报内容")
         }
 
-        if replyText.isEmpty {
-            throw AgentError.parseError("Qwen 没有返回可播报内容")
-        }
-
+        let sessionId = (message["session_id"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         let compressed = compressForSpeech(replyText)
         return Response(replyText: compressed, sessionId: sessionId)
     }
@@ -346,6 +346,8 @@ actor AgentService {
     private func configuredExecutablePath(for executable: String) -> String? {
         let configuredPath: String?
         switch executable {
+        case "claude":
+            configuredPath = config.qwenPath
         case "qwen":
             configuredPath = config.qwenPath
         default:
@@ -403,7 +405,7 @@ extension AgentService {
         findExecutableOverrideForTesting = override
     }
     func _parseQwenOutputForTesting(_ output: String) throws -> Response {
-        try parseQwenOutput(output)
+        try parseAgentOutput(output)
     }
 
     func _configuredExecutablePathForTesting(_ executable: String) -> String? {

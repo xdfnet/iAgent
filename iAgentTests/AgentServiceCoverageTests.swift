@@ -56,15 +56,12 @@ final class AgentServiceCoverageTests: XCTestCase {
         let missingCommand = await service._findExecutableForTesting("missing_cmd_\(UUID().uuidString)")
         XCTAssertNil(missingCommand)
 
-        let qwenMsg = try await service._parseQwenOutputForTesting(#"[{"type":"result","message":{"content":"q w e n"},"session_id":"s1"}]"#)
-        XCTAssertEqual(qwenMsg.replyText, "qwen")
-        XCTAssertEqual(qwenMsg.sessionId, "s1")
-
-        let qwenResult = try await service._parseQwenOutputForTesting(#"[{"subtype":"success","result":"ok text"}]"#)
-        XCTAssertEqual(qwenResult.replyText, "oktext")
+        let claudeResult = try await service._parseQwenOutputForTesting(#"{"type":"result","subtype":"success","result":"claude text","session_id":"sid-claude"}"#)
+        XCTAssertEqual(claudeResult.replyText, "claudetext")
+        XCTAssertEqual(claudeResult.sessionId, "sid-claude")
 
         do {
-            _ = try await service._parseQwenOutputForTesting(#"[{"type":"result"}]"#)
+            _ = try await service._parseQwenOutputForTesting(#"{"type":"result"}"#)
             XCTFail("expected parse error")
         } catch {
             XCTAssertTrue((error as? AgentError)?.errorDescription?.contains("解析错误") == true)
@@ -133,7 +130,7 @@ final class AgentServiceCoverageTests: XCTestCase {
             body: """
             #!/bin/zsh
             sleep 2
-            echo '[{"type":"result","message":{"content":"late"}}]'
+            echo '{"type":"result","subtype":"success","result":"late"}'
             """
         )
         let timeoutService = AgentService(
@@ -155,11 +152,11 @@ final class AgentServiceCoverageTests: XCTestCase {
         }
     }
 
-    func testQwenExecutePassesResumeAndJsonArguments() async throws {
+    func testClaudeExecutePassesResumeAndJsonArguments() async throws {
         let logURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("iagent-tests")
             .appendingPathComponent(UUID().uuidString)
-            .appendingPathComponent("qwen-model.log")
+            .appendingPathComponent("claude-model.log")
         try FileManager.default.createDirectory(
             at: logURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -183,9 +180,9 @@ final class AgentServiceCoverageTests: XCTestCase {
           esac
         done
         echo "PROMPT:${prompt}" >> "$LOG_FILE"
-        printf '[{"type":"result","message":{"content":"ok:%s"},"session_id":"sid-qwen"}]\\n' "$prompt"
+        printf '{"type":"result","subtype":"success","result":"ok:%s","session_id":"sid-claude"}\\n' "$prompt"
         """
-        let scriptURL = try makeExecutableScript(prefix: "agent-qwen-model", body: script)
+        let scriptURL = try makeExecutableScript(prefix: "agent-claude-model", body: script)
 
         let service = AgentService(
             config: .init(
@@ -195,23 +192,26 @@ final class AgentServiceCoverageTests: XCTestCase {
             )
         )
 
-        let response = try await service.execute(prompt: "hello-qwen", sessionId: "sid-resume")
-        XCTAssertEqual(response.replyText, "ok:hello-qwen")
-        XCTAssertEqual(response.sessionId, "sid-qwen")
+        let response = try await service.execute(prompt: "hello-claude", sessionId: "sid-resume")
+        XCTAssertEqual(response.replyText, "ok:hello-claude")
+        XCTAssertEqual(response.sessionId, "sid-claude")
 
         let lines = try String(contentsOf: logURL, encoding: .utf8)
             .split(separator: "\n")
             .map(String.init)
-        XCTAssertEqual(lines, ["--output-format", "json", "--resume", "sid-resume", "PROMPT:hello-qwen"])
+        XCTAssertEqual(
+            lines,
+            ["--output-format", "json", "--permission-mode", "bypassPermissions", "--resume", "sid-resume", "PROMPT:hello-claude"]
+        )
     }
 
-    func testQwenFallsBackToPATHLookupWhenConfiguredPathIsNil() async throws {
+    func testClaudeFallsBackToPATHLookupWhenConfiguredPathIsNil() async throws {
         let script = """
         #!/bin/zsh
         set -euo pipefail
-        printf '[{"type":"result","message":{"content":"path-lookup-ok"}}]\\n'
+        printf '{"type":"result","subtype":"success","result":"path-lookup-ok"}\\n'
         """
-        let scriptURL = try makeExecutableScript(prefix: "qwen", body: script)
+        let scriptURL = try makeExecutableScript(prefix: "claude", body: script)
 
         let service = AgentService(
             config: .init(
@@ -221,7 +221,7 @@ final class AgentServiceCoverageTests: XCTestCase {
             )
         )
         await service._setFindExecutableOverrideForTesting { name in
-            name == "qwen" ? scriptURL.path : nil
+            name == "claude" ? scriptURL.path : nil
         }
         let response = try await service.execute(prompt: "path-run")
         await service._setFindExecutableOverrideForTesting(nil)
@@ -243,7 +243,7 @@ final class AgentServiceCoverageTests: XCTestCase {
             XCTFail("expected executableNotFound")
         } catch let error as AgentError {
             if case .executableNotFound(let name) = error {
-                XCTAssertEqual(name, "qwen")
+                XCTAssertEqual(name, "claude")
             } else {
                 XCTFail("unexpected error \(error)")
             }
@@ -254,7 +254,7 @@ final class AgentServiceCoverageTests: XCTestCase {
         await service._setFindExecutableOverrideForTesting(nil)
     }
 
-    func testParseQwenOutputRejectsNonArrayTopLevel() async {
+    func testParseAgentOutputRejectsInvalidTopLevel() async {
         let service = AgentService(
             config: .init(
                 qwenPath: "/bin/echo",
@@ -264,7 +264,7 @@ final class AgentServiceCoverageTests: XCTestCase {
         )
 
         do {
-            _ = try await service._parseQwenOutputForTesting(#"{"type":"result"}"#)
+            _ = try await service._parseQwenOutputForTesting(#"[{"type":"result"}]"#)
             XCTFail("expected parse error")
         } catch let error as AgentError {
             if case .parseError(let message) = error {
@@ -294,11 +294,11 @@ final class AgentServiceCoverageTests: XCTestCase {
             prefix: "agent-large-output",
             body: """
             #!/bin/zsh
-            print -n '[{"type":"result","message":{"content":"'
+            print -n '{"type":"result","subtype":"success","result":"'
             for i in {1..70000}; do
               print -n 'a'
             done
-            print '"}}]'
+            print '"}'
             """
         )
 

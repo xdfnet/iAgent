@@ -28,6 +28,12 @@ struct Configuration: Codable, Sendable {
     nonisolated static func reload() -> Configuration {
         store.reload()
     }
+
+    nonisolated static func updateClientInputDeviceIndex(_ inputDeviceIndex: String) {
+        store.update {
+            $0.client.inputDeviceIndex = inputDeviceIndex
+        }
+    }
 }
 
 enum ConfigurationError: Error, LocalizedError {
@@ -220,7 +226,7 @@ struct ClientSettings: Codable, Sendable {
 private struct ConfigurationLoader {
     nonisolated static let configPathEnvironmentKey = "IAGENT_CONFIG_PATH"
 
-    private static let defaultConfigJSON = """
+    nonisolated private static let defaultConfigJSON = """
     {
       "speechToText": {
         "apiKey": "",
@@ -300,6 +306,83 @@ private struct ConfigurationLoader {
             }
         }
     }
+
+    nonisolated static func save(_ config: Configuration) {
+        guard let fileURL = preferredConfigFileURL() else { return }
+        let filePath = fileURL.path
+        let directoryPath = (filePath as NSString).deletingLastPathComponent
+
+        if !FileManager.default.fileExists(atPath: directoryPath) {
+            do {
+                try FileManager.default.createDirectory(atPath: directoryPath, withIntermediateDirectories: true)
+            } catch {
+                print("[Configuration] 创建配置目录失败: \(error.localizedDescription)")
+                return
+            }
+        }
+
+        do {
+            let object: [String: Any] = [
+                "speechToText": [
+                    "apiKey": config.speechToText.apiKey,
+                    "flashUrl": config.speechToText.flashUrl,
+                    "resourceId": config.speechToText.resourceId
+                ],
+                "textToSpeech": [
+                    "appId": config.textToSpeech.appId,
+                    "accessToken": config.textToSpeech.accessToken,
+                    "endpoint": config.textToSpeech.endpoint,
+                    "resourceId": config.textToSpeech.resourceId,
+                    "voiceType": config.textToSpeech.voiceType,
+                    "volume": config.textToSpeech.volume
+                ],
+                "agent": [
+                    "workdir": config.agent.workdir,
+                    "timeoutSeconds": config.agent.timeoutSeconds
+                ],
+                "behavior": [
+                    "enabled": config.behavior.enabled,
+                    "routerSSHHost": config.behavior.routerSSHHost,
+                    "monitoredPhoneMAC": config.behavior.monitoredPhoneMAC,
+                    "monitoredWiFiInterfaces": config.behavior.monitoredWiFiInterfaces,
+                    "pollIntervalSeconds": config.behavior.pollIntervalSeconds,
+                    "contextTTLSeconds": config.behavior.contextTTLSeconds,
+                    "cooldownSeconds": config.behavior.cooldownSeconds,
+                    "requiredOnlineConfirmations": config.behavior.requiredOnlineConfirmations,
+                    "requiredOfflineConfirmations": config.behavior.requiredOfflineConfirmations
+                ],
+                "client": [
+                    "inputDeviceIndex": config.client.inputDeviceIndex,
+                    "audio": [
+                        "sampleRate": config.client.audio.sampleRate,
+                        "channels": config.client.audio.channels,
+                        "sampleWidth": config.client.audio.sampleWidth
+                    ],
+                    "continuous": [
+                        "interruptOnSpeech": config.client.continuous.interruptOnSpeech,
+                        "frameMs": config.client.continuous.frameMs,
+                        "startThreshold": config.client.continuous.startThreshold,
+                        "playingStartThreshold": config.client.continuous.playingStartThreshold,
+                        "endThreshold": config.client.continuous.endThreshold,
+                        "startFrames": config.client.continuous.startFrames,
+                        "playingStartFrames": config.client.continuous.playingStartFrames,
+                        "endSilenceFrames": config.client.continuous.endSilenceFrames,
+                        "prerollFrames": config.client.continuous.prerollFrames,
+                        "minSpeechFrames": config.client.continuous.minSpeechFrames,
+                        "postInterruptCooldownSeconds": config.client.continuous.postInterruptCooldownSeconds
+                    ]
+                ]
+            ]
+
+            let data = try JSONSerialization.data(
+                withJSONObject: object,
+                options: [.prettyPrinted, .sortedKeys]
+            )
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            print("[Configuration] 保存配置文件失败: \(error.localizedDescription)")
+        }
+    }
 }
 
 private final class ConfigurationStore: @unchecked Sendable {
@@ -315,6 +398,13 @@ private final class ConfigurationStore: @unchecked Sendable {
         lock.withLock {
             cached = ConfigurationLoader.load()
             return cached
+        }
+    }
+
+    nonisolated func update(_ mutate: (inout Configuration) -> Void) {
+        lock.withLock {
+            mutate(&cached)
+            ConfigurationLoader.save(cached)
         }
     }
 }

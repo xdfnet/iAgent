@@ -38,11 +38,11 @@ private func validAgentSessionTestWorkdir() -> String {
 }
 
 final class AgentServiceSessionIntegrationTests: XCTestCase {
-    func testQwenSessionIdContinuationUsesResumeFlag() async throws {
+    func testClaudeSessionIdContinuationUsesResumeFlag() async throws {
         let logURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("iagent-tests")
             .appendingPathComponent(UUID().uuidString)
-            .appendingPathComponent("qwen-args.log")
+            .appendingPathComponent("claude-args.log")
         try FileManager.default.createDirectory(
             at: logURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -75,9 +75,9 @@ final class AgentServiceSessionIntegrationTests: XCTestCase {
         else
           sid="$resume"
         fi
-        printf '[{"type":"result","message":{"content":"reply:%s"},"session_id":"%s"}]\\n' "$prompt" "$sid"
+        printf '{"type":"result","subtype":"success","result":"reply:%s","session_id":"%s"}\\n' "$prompt" "$sid"
         """
-        let scriptURL = try makeTempScript(prefix: "fake-qwen", body: script)
+        let scriptURL = try makeTempScript(prefix: "fake-claude", body: script)
 
         let service = AgentService(
             config: .init(

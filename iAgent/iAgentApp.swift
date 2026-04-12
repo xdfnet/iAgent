@@ -13,6 +13,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let controlCenter = AgentControlCenter.shared
     private let maxStatusLength = 10
     private var diagnosticsRefreshTask: Task<Void, Never>?
+    private var microphoneSubmenu: NSMenu?
     private var behaviorStatusItem: NSMenuItem?
     private var behaviorEventItems: [NSMenuItem] = []
     var terminateHandler: (() -> Void)?
@@ -91,6 +92,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(versionItem)
         }
         menu.addItem(NSMenuItem.separator())
+
+        let microphoneItem = NSMenuItem(title: "麦克风", action: nil, keyEquivalent: "")
+        let microphoneSubmenu = NSMenu(title: "麦克风")
+        microphoneItem.submenu = microphoneSubmenu
+        menu.addItem(microphoneItem)
+        self.microphoneSubmenu = microphoneSubmenu
+        refreshMicrophoneMenu()
+
+        menu.addItem(NSMenuItem.separator())
         let behaviorHeaderItem = NSMenuItem(title: "行为诊断", action: nil, keyEquivalent: "")
         behaviorHeaderItem.isEnabled = false
         menu.addItem(behaviorHeaderItem)
@@ -115,7 +125,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        // 菜单内容由后台刷新循环维护；这里不再依赖异步刷新结果。
+        refreshMicrophoneMenu()
     }
 
     private func updateIcon(_ name: String) {
@@ -203,6 +213,46 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         return "状态: 正在检测.."
+    }
+
+    private func refreshMicrophoneMenu() {
+        guard let microphoneSubmenu else { return }
+
+        microphoneSubmenu.removeAllItems()
+        let devices = controlCenter.availableInputDevices()
+
+        guard !devices.isEmpty else {
+            let emptyItem = NSMenuItem(title: "未发现输入设备", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            microphoneSubmenu.addItem(emptyItem)
+            return
+        }
+
+        for device in devices {
+            let item = NSMenuItem(
+                title: device.name,
+                action: #selector(selectInputDeviceFromMenu(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.state = device.isDefault ? .on : .off
+            item.representedObject = device.uid
+            microphoneSubmenu.addItem(item)
+        }
+    }
+
+    @objc
+    private func selectInputDeviceFromMenu(_ sender: NSMenuItem) {
+        guard let uid = sender.representedObject as? String else { return }
+
+        Task { @MainActor [weak self] in
+            do {
+                try await self?.controlCenter.selectInputDevice(uid: uid)
+                self?.refreshMicrophoneMenu()
+            } catch {
+                print("[AppDelegate] 麦克风切换失败: \(error.localizedDescription)")
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

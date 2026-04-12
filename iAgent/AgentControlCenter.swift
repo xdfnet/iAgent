@@ -371,6 +371,7 @@ final class AgentControlCenter {
             _ = Configuration.reload()
             try await ensureMicrophoneAccess()
             try validateRuntimeDependencies()
+            try applyConfiguredInputDevicePreferenceIfNeeded()
             await behaviorService.stopMonitoring(clearContext: false)
             await behaviorService.startMonitoring()
             print("[AgentControlCenter] 依赖验证通过")
@@ -435,6 +436,30 @@ final class AgentControlCenter {
 
     func behaviorDiagnosticsSnapshot() async -> BehaviorService.DiagnosticsSnapshot {
         await behaviorService.diagnosticsSnapshot()
+    }
+
+    func availableInputDevices() -> [AudioInputDeviceManager.InputDevice] {
+        (try? AudioInputDeviceManager.inputDevices()) ?? []
+    }
+
+    func selectInputDevice(uid: String) async throws {
+        let devices = try AudioInputDeviceManager.inputDevices()
+        guard let target = devices.first(where: { $0.uid == uid }) else {
+            throw AudioInputDeviceManager.DeviceError.deviceNotFound(uid)
+        }
+
+        try AudioInputDeviceManager.setDefaultInputDevice(uid: uid)
+        Configuration.updateClientInputDeviceIndex(uid)
+        _ = Configuration.reload()
+        updateRuntimeDescription()
+
+        if isServiceRunning {
+            await voiceService.stopListening()
+            try await voiceService.startListening()
+        }
+
+        statusMessage = "麦克风已切换: \(target.name)"
+        print("[AgentControlCenter] 麦克风已切换: \(target.name), uid=\(uid)")
     }
 
     func stopPlayback() {
@@ -503,7 +528,23 @@ final class AgentControlCenter {
 
     private func updateRuntimeDescription() {
         let agentPath = ExecutableLocator.find(requiredAgentExecutableName) ?? "missing"
-        runtimeDescription = "qwen: \(agentPath) | audio: native"
+        let microphoneName = ((try? AudioInputDeviceManager.inputDevices())?
+            .first(where: \.isDefault)?
+            .name) ?? "系统默认"
+        runtimeDescription = "claude: \(agentPath) | mic: \(microphoneName)"
+    }
+
+    private func applyConfiguredInputDevicePreferenceIfNeeded() throws {
+        let configuredValue = Configuration.shared.client.inputDeviceIndex
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !configuredValue.isEmpty else { return }
+        guard configuredValue != "0", configuredValue.lowercased() != "auto" else { return }
+
+        let currentDefaultUID = try AudioInputDeviceManager.defaultInputDeviceUID()
+        guard currentDefaultUID != configuredValue else { return }
+
+        try AudioInputDeviceManager.setDefaultInputDevice(uid: configuredValue)
     }
 
     private var requiredAgentExecutableName: String {
