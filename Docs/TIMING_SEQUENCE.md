@@ -1,6 +1,6 @@
 # iAgent 全工程时序说明
 
-更新时间：2026-04-08
+更新时间：2026-04-16
 
 ## 1. 文档范围
 
@@ -111,36 +111,31 @@ sequenceDiagram
 
 ### 6.1 语音主管线
 
-```mermaid
-sequenceDiagram
-    participant Voice as "VoiceService"
-    participant Center as "AgentControlCenter"
-    participant ASR as "ASRService"
-    participant Agent as "AgentService"
-    participant TTS as "TTSService"
-    participant Play as "PlaybackService"
-
-    Voice-->>Center: segmentStream(VoiceSegment)
-    Center->>ASR: transcribe(audioData)
-    ASR-->>Center: transcript
-    Center->>Agent: execute(buildAgentPrompt(transcript))
-    Agent-->>Center: replyText + sessionId?
-    opt autoSpeak == true
-        Center->>TTS: synthesize(replyText)
-        TTS-->>Center: audioData
-        Center->>Play: play(audioData, interrupt: true)
-        Center->>Play: waitUntilFinished()
-    end
-    Center->>Voice: setSpeechDetectionSuspended(false, cooldown)
+```text
+收到语音片段
+    ↓
+暂停VAD检测（setSpeechDetectionSuspended(true)）
+    ↓
+ASR 转写（statusMessage = "ASR 转写中"）
+    ↓
+Agent 处理（statusMessage = "Agent 处理中"）
+    ↓
+播报 TTS（statusMessage = "TTS 播放中"）
+    ↓
+恢复VAD检测（setSpeechDetectionSuspended(false)）
+    ↓
+statusMessage = "VAD 监听中"
 ```
 
 状态变化：
 
-- 片段进入处理：`statusMessage = "ASR 转写中"`
-- ASR 完成：`statusMessage = "ASR 完成"`
-- Agent 返回：`statusMessage = "Agent 响应: ..."`
+- 片段进入处理：`statusMessage = "ASR 设备识别中"`
+- ASR 转写中：`statusMessage = "ASR 转写中"`
+- Agent 处理中：`statusMessage = "Agent 处理中"`
 - 播报中：`statusMessage = "TTS 播放中"`
-- 播放完成后，才恢复 `listening`
+- 播报完成：恢复 `listening`，`statusMessage = "VAD 监听中"`
+
+> 注意：VAD 暂停机制使用 `setSpeechDetectionSuspended`，而非关闭麦克风。麦克风始终开着，只暂停 VAD 检测。
 
 ## 7. 播放状态与菜单栏展示
 
