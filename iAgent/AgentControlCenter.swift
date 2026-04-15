@@ -308,7 +308,8 @@ final class AgentControlCenter {
             return health == .healthy ? "待命中" : "待机"
         }
 
-        if status.contains("恢复") || status.contains("自动重试") {
+        // 只有真正在恢复时才显示"恢复中"，预告重试不显示
+        if status == "恢复语音采集" || status.hasPrefix("采集恢复失败") {
             return "恢复中"
         }
         if isPlaying {
