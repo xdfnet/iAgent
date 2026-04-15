@@ -863,6 +863,8 @@ final class AgentControlCenter {
                 await self?.voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 2.5)
             }
             isProcessingBehaviorTurn = false
+            // 取消任何待处理的恢复，确保状态不会被恢复逻辑覆盖
+            voiceRecoveryController.cancel()
             // 播报完成后直接重置为倾听中
             self.statusMessage = "VAD 监听中"
         }
