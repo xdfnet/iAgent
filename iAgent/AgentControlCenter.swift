@@ -325,6 +325,7 @@ final class AgentControlCenter {
             ("TTS 播放失败", "异常"),
             ("处理失败", "异常"),
             ("采集异常", "异常"),
+            ("采集设备未就绪", "设备未就绪"),
             ("TTS 播放中", "播报中"),
             ("Agent 处理中", "AI思考中"),
             ("ASR 设备识别中", "语音识别中"),
@@ -776,7 +777,7 @@ final class AgentControlCenter {
         do {
             let inputDevice = segment.deviceID.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !inputDevice.isEmpty else {
-                statusMessage = "ASR 设备未就绪，等待自动恢复"
+                statusMessage = "采集设备未就绪"
                 voiceRecoveryController.scheduleRetry(
                     reason: "采集设备未就绪",
                     health: health,
