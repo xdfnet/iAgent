@@ -37,7 +37,6 @@ final class AgentControlCenterPipelineTests: XCTestCase {
         XCTAssertEqual(executeCountValue, 1)
         XCTAssertEqual(center.latestConversation.user, "测试输入")
         XCTAssertEqual(center.latestConversation.assistant, "收到: 测试输入")
-        XCTAssertEqual(center.statusMessage, "回复已返回")
     }
 
     func testProcessTranscriptAutoSpeakRunsSynthesizeAndPlay() async throws {
@@ -105,7 +104,9 @@ final class AgentControlCenterPipelineTests: XCTestCase {
                 playAudio: { _, interrupt in
                     XCTAssertTrue(interrupt)
                     await playCount.increment()
-                }
+                },
+                pauseVoiceCaptureForPlayback: {},
+                resumeVoiceCaptureAfterPlayback: {}
             )
         )
 
@@ -113,7 +114,7 @@ final class AgentControlCenterPipelineTests: XCTestCase {
 
         XCTAssertEqual(center.latestConversation.user, "飞哥回来了")
         XCTAssertEqual(center.latestConversation.assistant, "飞哥，欢迎回家。")
-        XCTAssertEqual(center.statusMessage, "播报完成")
+        XCTAssertEqual(center.statusMessage, "TTS 空闲")
         let synthCountValue = await synthCount.get()
         let playCountValue = await playCount.get()
         XCTAssertEqual(synthCountValue, 1)

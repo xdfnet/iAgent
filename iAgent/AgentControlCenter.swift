@@ -83,15 +83,13 @@ private final class VoiceCaptureRecoveryController {
     func statusMessage(for state: VoiceService.State) -> String {
         switch state {
         case .idle:
-            return "等待说话"
+            return "VAD 待机"
         case .listening:
-            return "正在监听..."
-        case .interruptingPlayback:
-            return "检测到语音，正在打断播放..."
+            return "VAD 监听中"
         case .speaking:
-            return "检测到语音..."
+            return "VAD 语音检测"
         case .processing:
-            return "处理中..."
+            return "VAD 处理中"
         }
     }
 
@@ -104,7 +102,7 @@ private final class VoiceCaptureRecoveryController {
         switch state {
         case .idle:
             if isAwaitingFirstListening {
-                statusUpdater("正在启动采集...")
+                statusUpdater("启动语音采集")
                 return
             }
             if isPerformingRecovery || hasScheduledRecovery {
@@ -114,7 +112,7 @@ private final class VoiceCaptureRecoveryController {
             if health == .healthy, hasVoiceCaptureEverStarted, !isPerformingRecovery {
                 scheduleRecovery(reason: "采集已停止", health: health, statusUpdater: statusUpdater, recoveryTrigger: recoveryTrigger)
             }
-        case .listening, .interruptingPlayback, .speaking, .processing:
+        case .listening, .speaking, .processing:
             cancelScheduledRecovery()
             isAwaitingFirstListening = false
             hasVoiceCaptureEverStarted = true
@@ -154,11 +152,11 @@ private final class VoiceCaptureRecoveryController {
         defer { isPerformingRecovery = false }
 
         isAwaitingFirstListening = true
-        statusUpdater("正在恢复采集...")
+        statusUpdater("恢复语音采集")
 
         do {
             try await body()
-            statusUpdater("正在启动采集...")
+            statusUpdater("启动语音采集")
         } catch {
             isAwaitingFirstListening = false
             statusUpdater("采集恢复失败: \(error.localizedDescription)")
@@ -230,6 +228,10 @@ final class AgentControlCenter {
         var executeAgent: (@Sendable (String) async throws -> AgentService.Response)?
         var synthesizeText: (@Sendable (String) async throws -> Data)?
         var playAudio: (@Sendable (Data, Bool) async throws -> Void)?
+        var pauseVoiceCaptureForTurnProcessing: (@Sendable () async -> Void)? = nil
+        var resumeVoiceCaptureAfterTurnProcessing: (@Sendable () async throws -> Void)? = nil
+        var pauseVoiceCaptureForPlayback: (@Sendable () async -> Void)? = nil
+        var resumeVoiceCaptureAfterPlayback: (@Sendable () async throws -> Void)? = nil
     }
 
     // MARK: - UI 绑定属性
@@ -263,6 +265,9 @@ final class AgentControlCenter {
     private let voiceRecoveryController = VoiceCaptureRecoveryController()
     private var isProcessingVoiceTurn = false
     private var isProcessingBehaviorTurn = false
+    private var isRestartingVoiceCaptureAfterTurnProcessing = false
+    private var isRestartingVoiceCaptureAfterPlayback = false
+    private var deviceSwitchStatusResetTask: Task<Void, Never>?
     var testHooks: TestHooks?
 #if DEBUG
     private var requiredAgentExecutableNameOverrideForTesting: String?
@@ -295,12 +300,8 @@ final class AgentControlCenter {
     }
 
     var compactStatusText: String {
-        if health == .starting {
-            return "启动中"
-        }
-        if health == .stopped {
-            return "已停止"
-        }
+        if health == .starting { return "启动中" }
+        if health == .stopped { return "已停止" }
 
         let status = statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         if status.isEmpty {
@@ -310,37 +311,33 @@ final class AgentControlCenter {
         if status.contains("恢复") || status.contains("自动重试") {
             return "恢复中"
         }
-        if status.hasPrefix("启动失败") {
-            return "启动失败"
-        }
-        if status.hasPrefix("ASR未识别") {
-            return "未识别到，请再说一次"
-        }
-        if status.hasPrefix("ASR失败")
-            || status.hasPrefix("Agent失败")
-            || status.hasPrefix("播报失败")
-            || status.hasPrefix("处理失败")
-            || status.hasPrefix("采集异常")
-        {
-            return "异常"
-        }
-        if status.hasPrefix("播报中") || isPlaying {
+        if isPlaying {
             return "播报中"
         }
-        if status.hasPrefix("Agent处理中") || status == "处理中..." || status == "处理中" {
-            return "思考中"
+
+        // 前缀 → 显示文本 映射表
+        let prefixMap: [(prefix: String, display: String)] = [
+            ("启动失败", "启动失败"),
+            ("ASR 未识别", "没听清楚，请再说一次"),
+            ("ASR 转写失败", "异常"),
+            ("Agent 执行失败", "异常"),
+            ("TTS 播放失败", "异常"),
+            ("处理失败", "异常"),
+            ("采集异常", "异常"),
+            ("TTS 播放中", "播报中"),
+            ("Agent 处理中", "AI思考中"),
+            ("ASR 设备识别中", "语音识别中"),
+            ("ASR 转写中", "语音识别中"),
+            ("VAD 语音检测", "语音识别中"),
+            ("VAD 监听中", "倾听中"),
+            ("VAD 待机", "倾听中"),
+        ]
+
+        for (prefix, display) in prefixMap {
+            if status.hasPrefix(prefix) { return display }
         }
-        if status.hasPrefix("设备识别中")
-            || status.hasPrefix("识别中")
-            || status.hasPrefix("检测到语音")
-            || status.hasPrefix("检测到语音，正在打断播放")
-        {
-            return "识别中"
-        }
-        if status.hasPrefix("正在监听") || status.hasPrefix("等待说话") {
-            return "待命中"
-        }
-        return status
+
+        return status  // Fallback
     }
 
     // MARK: - 生命周期
@@ -459,6 +456,7 @@ final class AgentControlCenter {
         try await rebuildAudioDevicesIfNeeded()
 
         statusMessage = "麦克风已切换: \(target.name)"
+        scheduleDeviceSwitchStatusReset()
         print("[AgentControlCenter] 麦克风已切换: \(target.name), uid=\(uid)")
     }
 
@@ -476,6 +474,7 @@ final class AgentControlCenter {
         try await rebuildAudioDevicesIfNeeded()
 
         statusMessage = "扬声器已切换: \(target.name)"
+        scheduleDeviceSwitchStatusReset()
         print("[AgentControlCenter] 扬声器已切换: \(target.name), uid=\(uid)")
     }
 
@@ -582,6 +581,21 @@ final class AgentControlCenter {
         try await voiceService.startListening()
     }
 
+    private func scheduleDeviceSwitchStatusReset() {
+        deviceSwitchStatusResetTask?.cancel()
+        deviceSwitchStatusResetTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                // 只有当前状态仍是设备切换消息时才重置，避免覆盖其他状态
+                let current = self?.statusMessage ?? ""
+                if current.hasPrefix("麦克风已切换") || current.hasPrefix("扬声器已切换") {
+                    self?.statusMessage = "VAD 监听中"
+                }
+            }
+        }
+    }
+
     private var requiredAgentExecutableName: String {
 #if DEBUG
         if let override = requiredAgentExecutableNameOverrideForTesting {
@@ -667,6 +681,13 @@ final class AgentControlCenter {
         if health == .starting, state != .idle {
             health = .healthy
         }
+        if (isRestartingVoiceCaptureAfterPlayback || isRestartingVoiceCaptureAfterTurnProcessing),
+           state == .idle
+        {
+            let reason = isRestartingVoiceCaptureAfterPlayback ? "播报后" : "处理完成后"
+            print("[AgentControlCenter] 忽略\(reason)重启采集产生的 idle 状态")
+            return
+        }
         let shouldPublishStatus = shouldPublishCaptureStatus(for: state)
         voiceRecoveryController.handleVoiceState(
             state,
@@ -682,10 +703,13 @@ final class AgentControlCenter {
             }
         )
 
-        if state == .interruptingPlayback {
-            Task {
-                await playbackService.stop()
-            }
+        if isRestartingVoiceCaptureAfterTurnProcessing, state == .listening {
+            isRestartingVoiceCaptureAfterTurnProcessing = false
+            print("[AgentControlCenter] 处理完成后采集已恢复")
+        }
+        if isRestartingVoiceCaptureAfterPlayback, state == .listening {
+            isRestartingVoiceCaptureAfterPlayback = false
+            print("[AgentControlCenter] 播报后采集已恢复")
         }
     }
 
@@ -715,7 +739,7 @@ final class AgentControlCenter {
                 )
             }
         )
-        if statusMessage == "正在监听..." {
+        if statusMessage == "麦克风监听中" {
             print("[AgentControlCenter] 采集恢复成功")
         }
     }
@@ -724,8 +748,8 @@ final class AgentControlCenter {
         let wasPlaying = isPlaying
         isPlaying = (state == .playing)
 
-        if state == .idle, wasPlaying, health == .healthy, statusMessage == "播报中" {
-            statusMessage = "播报完成"
+        if state == .idle, wasPlaying, health == .healthy, statusMessage == "TTS 播放中" {
+            statusMessage = "TTS 空闲"
         }
     }
 
@@ -735,18 +759,30 @@ final class AgentControlCenter {
         print("[AgentControlCenter] 收到语音片段，bytes=\(audioData.count)")
         isProcessingVoiceTurn = true
         await voiceService.setSpeechDetectionSuspended(true)
+        var didPauseVoiceCaptureForTurn = false
+        var turnDidThrow = false
         defer {
             Task { [weak self] in
                 await self?.voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 0.8)
             }
             isProcessingVoiceTurn = false
+            // Turn 处理完成后，如果状态还是中间处理状态（且非错误状态），则重置为监听状态
+            // 避免上一轮的处理状态残留在界面上
+            // 错误状态（ASR失败、ASR未识别等）保留，由 catch 块设置
+            if !turnDidThrow {
+                let stalePrefixes = ["VAD 语音检测", "ASR 设备识别中", "ASR 转写中", "ASR 完成", "Agent 处理中"]
+                let current = self.statusMessage
+                if stalePrefixes.contains(where: { current.hasPrefix($0) }) {
+                    self.statusMessage = "VAD 监听中"
+                }
+            }
         }
-        statusMessage = "设备识别中..."
+        statusMessage = "ASR 设备识别中"
 
         do {
             let inputDevice = segment.deviceID.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !inputDevice.isEmpty else {
-                statusMessage = "采集设备未就绪，等待自动恢复..."
+                statusMessage = "ASR 设备未就绪，等待自动恢复"
                 voiceRecoveryController.scheduleRetry(
                     reason: "采集设备未就绪",
                     health: health,
@@ -760,7 +796,10 @@ final class AgentControlCenter {
             }
             print("[AgentControlCenter] 设备识别完成，当前采集设备: \(inputDevice)")
 
-            statusMessage = "识别中..."
+            await pauseVoiceCaptureForTurnProcessing()
+            didPauseVoiceCaptureForTurn = true
+
+            statusMessage = "ASR 转写中"
             let asrStart = Date()
             let transcript = try await transcribeAudioData(audioData)
             let asrElapsed = Date().timeIntervalSince(asrStart)
@@ -775,15 +814,39 @@ final class AgentControlCenter {
                 shouldAutoSpeak: shouldAutoSpeak,
                 showRecognizedTranscript: true
             )
+            if didPauseVoiceCaptureForTurn, !shouldAutoSpeak {
+                try await resumeVoiceCaptureAfterTurnProcessing()
+                didPauseVoiceCaptureForTurn = false
+            }
             let totalElapsed = Date().timeIntervalSince(segmentStart)
             print("[AgentControlCenter] 语音片段处理完成，总耗时=\(String(format: "%.2f", totalElapsed))s")
         } catch {
-            if !statusMessage.hasPrefix("ASR失败")
-                && !statusMessage.hasPrefix("Agent失败")
-                && !statusMessage.hasPrefix("播报失败") {
+            turnDidThrow = true
+            if !statusMessage.hasPrefix("ASR 转写失败")
+                && !statusMessage.hasPrefix("ASR 未识别")
+                && !statusMessage.hasPrefix("Agent 执行失败")
+                && !statusMessage.hasPrefix("TTS 播放失败") {
                 statusMessage = "处理失败: \(error.localizedDescription)"
             }
             print("[AgentControlCenter] 语音片段处理失败: \(error)")
+            if didPauseVoiceCaptureForTurn {
+                do {
+                    try await resumeVoiceCaptureAfterTurnProcessing()
+                    didPauseVoiceCaptureForTurn = false
+                } catch {
+                    isRestartingVoiceCaptureAfterTurnProcessing = false
+                    statusMessage = "VAD 采集恢复中"
+                    voiceRecoveryController.scheduleRetry(
+                        reason: "处理完成后恢复采集失败",
+                        health: health,
+                        statusUpdater: { self.statusMessage = $0 },
+                        recoveryTrigger: { [weak self] reason in
+                            await self?.attemptVoiceRecovery(reason: reason)
+                        }
+                    )
+                    print("[AgentControlCenter] 处理完成后恢复采集失败: \(error.localizedDescription)")
+                }
+            }
         }
     }
 
@@ -794,18 +857,18 @@ final class AgentControlCenter {
     ) async throws {
         latestConversation = AgentConversation(user: transcript, assistant: "")
         if showRecognizedTranscript {
-            statusMessage = "识别完成: \(transcript)"
+            statusMessage = "ASR 完成"
         } else {
-            statusMessage = "处理中"
+            statusMessage = "Agent 处理中"
         }
 
-        statusMessage = "Agent处理中..."
+        statusMessage = "Agent 处理中"
         let agentStart = Date()
         let response: AgentService.Response
         do {
             response = try await executeAgent(text: transcript)
         } catch {
-            statusMessage = "Agent失败: \(error.localizedDescription)"
+            statusMessage = "Agent 执行失败: \(error.localizedDescription)"
             throw error
         }
         let agentElapsed = Date().timeIntervalSince(agentStart)
@@ -816,9 +879,7 @@ final class AgentControlCenter {
 
         latestConversation = AgentConversation(user: transcript, assistant: response.replyText)
         if showRecognizedTranscript {
-            statusMessage = "回复: \(response.replyText)"
-        } else {
-            statusMessage = "回复已返回"
+            statusMessage = "Agent 响应: \(response.replyText)"
         }
 
         await conversationMemory.addTurn(user: transcript, assistant: response.replyText)
@@ -827,7 +888,7 @@ final class AgentControlCenter {
             do {
                 try await speakTextInternal(response.replyText)
             } catch {
-                statusMessage = "播报失败: \(error.localizedDescription)"
+                statusMessage = "TTS 播放失败: \(error.localizedDescription)"
                 throw error
             }
         }
@@ -842,30 +903,35 @@ final class AgentControlCenter {
         guard let behaviorContext else { return }
 
         isProcessingBehaviorTurn = true
-        defer { isProcessingBehaviorTurn = false }
+        await voiceService.setSpeechDetectionSuspended(true)
+        defer {
+            Task { [weak self] in
+                await self?.voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 2.5)
+            }
+            isProcessingBehaviorTurn = false
+        }
 
         let displayText = "飞哥回来了"
         let proactivePrompt = "请主动和飞哥打个招呼，欢迎他回家。"
 
         latestConversation = AgentConversation(user: displayText, assistant: "")
-        statusMessage = "Agent处理中..."
+        statusMessage = "Agent 处理中"
 
         let response: AgentService.Response
         do {
             response = try await executeAgent(text: proactivePrompt, behaviorContextOverride: behaviorContext)
         } catch {
-            statusMessage = "Agent失败: \(error.localizedDescription)"
+            statusMessage = "Agent 执行失败: \(error.localizedDescription)"
             throw error
         }
 
         latestConversation = AgentConversation(user: displayText, assistant: response.replyText)
-        statusMessage = "回复已返回"
         await conversationMemory.addTurn(user: displayText, assistant: response.replyText)
 
         do {
             try await speakTextInternal(response.replyText)
         } catch {
-            statusMessage = "播报失败: \(error.localizedDescription)"
+            statusMessage = "TTS 播放失败: \(error.localizedDescription)"
             throw error
         }
 
@@ -873,10 +939,17 @@ final class AgentControlCenter {
     }
 
     private func speakTextInternal(_ text: String) async throws {
-        statusMessage = "播报中"
+        statusMessage = "TTS 播放中"
         print("[AgentControlCenter] 开始播报，text=\(formatLogText(text))")
 
+        let voiceCaptureAlreadyPausedForTurn = isRestartingVoiceCaptureAfterTurnProcessing
+        let shouldPauseVoiceCaptureForPlayback = isServiceRunning && !voiceCaptureAlreadyPausedForTurn
+        let shouldResumeVoiceCapture = isServiceRunning
         do {
+            if shouldPauseVoiceCaptureForPlayback {
+                await pauseVoiceCaptureForPlayback()
+            }
+
             let ttsStart = Date()
             let audioData = try await synthesizeSpeech(text)
             let ttsElapsed = Date().timeIntervalSince(ttsStart)
@@ -890,30 +963,103 @@ final class AgentControlCenter {
 
             let stillPlaying = await playbackService.isPlaying
             if !stillPlaying {
-                statusMessage = "播报完成"
+                statusMessage = "TTS 空闲"
+            }
+
+            if shouldResumeVoiceCapture {
+                if voiceCaptureAlreadyPausedForTurn {
+                    try await resumeVoiceCaptureAfterTurnProcessing()
+                } else {
+                    try await resumeVoiceCaptureAfterPlayback()
+                }
             }
         } catch {
+            if shouldResumeVoiceCapture {
+                do {
+                    if voiceCaptureAlreadyPausedForTurn {
+                        try await resumeVoiceCaptureAfterTurnProcessing()
+                    } else {
+                        try await resumeVoiceCaptureAfterPlayback()
+                    }
+                } catch {
+                    if voiceCaptureAlreadyPausedForTurn {
+                        isRestartingVoiceCaptureAfterTurnProcessing = false
+                    } else {
+                        isRestartingVoiceCaptureAfterPlayback = false
+                    }
+                    statusMessage = "VAD 采集恢复中"
+                    voiceRecoveryController.scheduleRetry(
+                        reason: "播报后恢复采集失败",
+                        health: health,
+                        statusUpdater: { self.statusMessage = $0 },
+                        recoveryTrigger: { [weak self] reason in
+                            await self?.attemptVoiceRecovery(reason: reason)
+                        }
+                    )
+                    print("[AgentControlCenter] 播报后恢复采集失败: \(error.localizedDescription)")
+                }
+            } else {
+                isRestartingVoiceCaptureAfterPlayback = false
+            }
             throw error
         }
     }
 
-    private func transcribeAudioData(_ audioData: Data) async throws -> String {
-        if let handler = testHooks?.transcribeAudio {
-            return try await handler(audioData)
+    private func pauseVoiceCaptureForTurnProcessing() async {
+        if let handler = testHooks?.pauseVoiceCaptureForTurnProcessing {
+            isRestartingVoiceCaptureAfterTurnProcessing = true
+            await handler()
+            return
         }
+        isRestartingVoiceCaptureAfterTurnProcessing = true
+        await voiceService.stopListening()
+    }
+
+    private func resumeVoiceCaptureAfterTurnProcessing() async throws {
+        if let handler = testHooks?.resumeVoiceCaptureAfterTurnProcessing {
+            try await handler()
+            isRestartingVoiceCaptureAfterTurnProcessing = false
+            return
+        }
+        try await voiceService.startListening()
+    }
+
+    private func pauseVoiceCaptureForPlayback() async {
+        if let handler = testHooks?.pauseVoiceCaptureForPlayback {
+            isRestartingVoiceCaptureAfterPlayback = true
+            await handler()
+            return
+        }
+        isRestartingVoiceCaptureAfterPlayback = true
+        await voiceService.stopListening()
+    }
+
+    private func resumeVoiceCaptureAfterPlayback() async throws {
+        if let handler = testHooks?.resumeVoiceCaptureAfterPlayback {
+            try await handler()
+            isRestartingVoiceCaptureAfterPlayback = false
+            return
+        }
+        try await voiceService.startListening()
+    }
+
+    private func transcribeAudioData(_ audioData: Data) async throws -> String {
         do {
+            if let handler = testHooks?.transcribeAudio {
+                return try await handler(audioData)
+            }
             return try await asrService.transcribe(audioData: audioData, format: .pcm)
         } catch let error as ASRError {
             switch error {
             case .noResult:
                 await voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 2.0)
-                statusMessage = "ASR未识别到有效语音，请再说一次"
+                statusMessage = "ASR 未识别到有效语音"
             default:
-                statusMessage = "ASR失败: \(error.localizedDescription)"
+                statusMessage = "ASR 转写失败: \(error.localizedDescription)"
             }
             throw error
         } catch {
-            statusMessage = "ASR失败: \(error.localizedDescription)"
+            statusMessage = "ASR 转写失败: \(error.localizedDescription)"
             throw error
         }
     }
@@ -961,20 +1107,17 @@ final class AgentControlCenter {
             }
             let currentStatus = statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
             let blockedPrefixes = [
-                "设备识别中",
-                "识别中",
-                "ASR未识别",
-                "ASR失败",
+                "VAD 语音检测",
+                "ASR 设备识别中",
+                "ASR 转写中",
+                "ASR 未识别",
+                "ASR 转写失败",
                 "处理失败",
-                "Agent处理中",
-                "处理中",
-                "回复:",
-                "回复已返回"
+                "Agent 处理中",
+                "Agent 响应:"
             ]
             return !blockedPrefixes.contains { currentStatus.hasPrefix($0) }
         case .idle:
-            return true
-        case .interruptingPlayback:
             return true
         }
     }
@@ -1071,6 +1214,14 @@ final class AgentControlCenter {
 
     func _setVoiceRecoveryAttemptHookForTesting(_ hook: ((String) -> Void)?) {
         voiceRecoveryAttemptHookForTesting = hook
+    }
+
+    func _setRestartingVoiceCaptureAfterPlaybackForTesting(_ value: Bool) {
+        isRestartingVoiceCaptureAfterPlayback = value
+    }
+
+    func _setRestartingVoiceCaptureAfterTurnProcessingForTesting(_ value: Bool) {
+        isRestartingVoiceCaptureAfterTurnProcessing = value
     }
 
     func _setBehaviorContextMessageForTesting(_ message: String?) async {

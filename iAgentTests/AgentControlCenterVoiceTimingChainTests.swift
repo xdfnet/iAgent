@@ -52,6 +52,7 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
         let outputAudio = Data([0xAA, 0xBB, 0xCC])
 
         center.autoSpeak = true
+        center._setHealthForTesting(.healthy)
         center._setTestHooksForTesting(
             .init(
                 transcribeAudio: { audioData in
@@ -73,6 +74,12 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
                     XCTAssertEqual(audioData, outputAudio)
                     XCTAssertTrue(interrupt)
                     await trace.record("play")
+                },
+                pauseVoiceCaptureForTurnProcessing: {
+                    await trace.record("pause-turn")
+                },
+                resumeVoiceCaptureAfterTurnProcessing: {
+                    await trace.record("resume-turn")
                 }
             )
         )
@@ -80,7 +87,12 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
         await center._processVoiceSegmentForTesting(inputAudio)
 
         let events = await trace.snapshot()
-        XCTAssertEqual(events, ["asr", "agent", "tts", "play"])
+        XCTAssertEqual(events.first, "pause-turn")
+        XCTAssertTrue(events.contains("resume-turn"))
+        XCTAssertEqual(
+            events.filter { !["pause-turn", "resume-turn"].contains($0) },
+            ["asr", "agent", "tts", "play"]
+        )
         XCTAssertEqual(center.latestConversation.user, "你好，链路测试")
         XCTAssertEqual(center.latestConversation.assistant, "收到，开始播报")
         let turns = await center._getConversationTurnsForTesting()
@@ -111,6 +123,12 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
                 },
                 playAudio: { _, _ in
                     XCTFail("autoSpeak=false 时不应播放音频")
+                },
+                pauseVoiceCaptureForTurnProcessing: {
+                    await trace.record("pause-turn")
+                },
+                resumeVoiceCaptureAfterTurnProcessing: {
+                    await trace.record("resume-turn")
                 }
             )
         )
@@ -118,10 +136,10 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
         await center._processVoiceSegmentForTesting(Data([0x01, 0x02]))
 
         let events = await trace.snapshot()
-        XCTAssertEqual(events, ["asr", "agent"])
+        XCTAssertEqual(events, ["pause-turn", "asr", "agent", "resume-turn"])
         XCTAssertEqual(center.latestConversation.user, "只做文本回复")
         XCTAssertEqual(center.latestConversation.assistant, "文本回复完成")
-        XCTAssertEqual(center.statusMessage, "回复: 文本回复完成")
+        XCTAssertEqual(center.statusMessage, "Agent 响应: 文本回复完成")
     }
 
     func testVoiceSegmentASRFailureStopsDownstream() async throws {
@@ -144,6 +162,12 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
                 },
                 playAudio: { _, _ in
                     XCTFail("ASR 失败后不应播放")
+                },
+                pauseVoiceCaptureForTurnProcessing: {
+                    await trace.record("pause-turn")
+                },
+                resumeVoiceCaptureAfterTurnProcessing: {
+                    await trace.record("resume-turn")
                 }
             )
         )
@@ -151,8 +175,47 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
         await center._processVoiceSegmentForTesting(Data([0x99]))
 
         let events = await trace.snapshot()
-        XCTAssertEqual(events, ["asr"])
-        XCTAssertTrue(center.statusMessage.contains("处理失败"))
+        XCTAssertEqual(events, ["pause-turn", "asr", "resume-turn"])
+        XCTAssertTrue(center.statusMessage.contains("处理失败") || center.statusMessage.contains("ASR 转写失败"))
+        let turns = await center._getConversationTurnsForTesting()
+        XCTAssertTrue(turns.isEmpty)
+    }
+
+    func testVoiceSegmentASRNoResultKeepsFriendlyPrompt() async throws {
+        let center = AgentControlCenter()
+        let trace = TimingTrace()
+
+        center._setTestHooksForTesting(
+            .init(
+                transcribeAudio: { _ in
+                    await trace.record("asr")
+                    throw ASRError.noResult
+                },
+                executeAgent: { _ in
+                    XCTFail("ASR noResult 后不应调用 Agent")
+                    return AgentService.Response(replyText: "", sessionId: nil)
+                },
+                synthesizeText: { _ in
+                    XCTFail("ASR noResult 后不应调用 TTS")
+                    return Data()
+                },
+                playAudio: { _, _ in
+                    XCTFail("ASR noResult 后不应播放")
+                },
+                pauseVoiceCaptureForTurnProcessing: {
+                    await trace.record("pause-turn")
+                },
+                resumeVoiceCaptureAfterTurnProcessing: {
+                    await trace.record("resume-turn")
+                }
+            )
+        )
+
+        await center._processVoiceSegmentForTesting(Data([0x55]))
+
+        let events = await trace.snapshot()
+        XCTAssertEqual(events, ["pause-turn", "asr", "resume-turn"])
+        XCTAssertEqual(center.statusMessage, "ASR 未识别到有效语音")
         let turns = await center._getConversationTurnsForTesting()
         XCTAssertTrue(turns.isEmpty)
     }
@@ -176,17 +239,28 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
                         throw TestPipelineError.agentTimeout
                     }
                     return AgentService.Response(replyText: "恢复成功", sessionId: nil)
+                },
+                synthesizeText: nil,
+                playAudio: nil,
+                pauseVoiceCaptureForTurnProcessing: {
+                    await trace.record("pause-turn")
+                },
+                resumeVoiceCaptureAfterTurnProcessing: {
+                    await trace.record("resume-turn")
                 }
             )
         )
 
         await center._processVoiceSegmentForTesting(Data([0x01]))
-        XCTAssertTrue(center.statusMessage.contains("处理失败") || center.statusMessage.contains("Agent失败"))
+        XCTAssertTrue(center.statusMessage.contains("处理失败") || center.statusMessage.contains("Agent 执行失败"))
 
         await center._processVoiceSegmentForTesting(Data([0x02]))
 
         let events = await trace.snapshot()
-        XCTAssertEqual(events, ["asr-1", "agent-第1轮", "asr-2", "agent-第2轮"])
+        XCTAssertEqual(
+            events,
+            ["pause-turn", "asr-1", "agent-第1轮", "resume-turn", "pause-turn", "asr-2", "agent-第2轮", "resume-turn"]
+        )
         XCTAssertEqual(center.latestConversation.user, "第2轮")
         XCTAssertEqual(center.latestConversation.assistant, "恢复成功")
     }
@@ -210,12 +284,14 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
                     if playAttempts == 1 {
                         throw TestPipelineError.playbackFailed
                     }
-                }
+                },
+                pauseVoiceCaptureForTurnProcessing: {},
+                resumeVoiceCaptureAfterTurnProcessing: {}
             )
         )
 
         await center._processVoiceSegmentForTesting(Data([0x10]))
-        XCTAssertTrue(center.statusMessage.contains("播报失败"))
+        XCTAssertTrue(center.statusMessage.contains("TTS 播放失败"))
 
         await center._processVoiceSegmentForTesting(Data([0x11]))
 

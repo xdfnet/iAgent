@@ -21,10 +21,7 @@ final class VoiceServiceCoverageTests: XCTestCase {
         }
     }
 
-    private func makeConfig(
-        interruptOnSpeech: Bool = false,
-        postInterruptCooldownSeconds: Double = 0.1
-    ) -> VoiceService.Config {
+    private func makeConfig() -> VoiceService.Config {
         VoiceService.Config(
             sampleRate: 1000,
             channels: 1,
@@ -38,8 +35,6 @@ final class VoiceServiceCoverageTests: XCTestCase {
             endSilenceFrames: 2,
             prerollFrames: 1,
             minSpeechFrames: 3,
-            postInterruptCooldownSeconds: postInterruptCooldownSeconds,
-            interruptOnSpeech: interruptOnSpeech,
             inputDeviceIndex: "0"
         )
     }
@@ -68,8 +63,6 @@ final class VoiceServiceCoverageTests: XCTestCase {
             endSilenceFrames: 28,
             prerollFrames: 14,
             minSpeechFrames: 12,
-            postInterruptCooldownSeconds: 1.2,
-            interruptOnSpeech: false,
             inputDeviceIndex: "2"
         )
         XCTAssertEqual(config.inputDeviceID, "2")
@@ -89,8 +82,6 @@ final class VoiceServiceCoverageTests: XCTestCase {
             endSilenceFrames: 28,
             prerollFrames: 14,
             minSpeechFrames: 12,
-            postInterruptCooldownSeconds: 1.2,
-            interruptOnSpeech: false,
             inputDeviceIndex: "2, 2, 5"
         )
         XCTAssertEqual(config.inputDeviceID, "2")
@@ -110,8 +101,6 @@ final class VoiceServiceCoverageTests: XCTestCase {
             endSilenceFrames: 28,
             prerollFrames: 14,
             minSpeechFrames: 12,
-            postInterruptCooldownSeconds: 1.2,
-            interruptOnSpeech: false,
             inputDeviceIndex: "auto"
         )
         XCTAssertEqual(config.inputDeviceID, "0")
@@ -127,14 +116,6 @@ final class VoiceServiceCoverageTests: XCTestCase {
 
         let listeningAfterCleanup = await service.isListening
         XCTAssertFalse(listeningAfterCleanup)
-    }
-
-    func testLastInterruptTestingHookAcceptsValue() async {
-        let service = VoiceService(config: makeConfig(interruptOnSpeech: true))
-        await service._setLastInterruptAtForTesting(Date())
-        await service._setLastInterruptAtForTesting(nil)
-        let listening = await service.isListening
-        XCTAssertFalse(listening)
     }
 
     func testDiagnosticStreamIsSeparatedFromErrorStream() async {

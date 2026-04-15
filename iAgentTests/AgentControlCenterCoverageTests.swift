@@ -96,36 +96,32 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         let center = AgentControlCenter()
         center.health = .healthy
         center.isPlaying = true
-        center.statusMessage = "播报中"
+        center.statusMessage = "TTS 播放中"
 
         center.stopPlayback()
         let stopped = await waitUntil { center.statusMessage == "播放已停止" && center.isPlaying == false }
         XCTAssertTrue(stopped)
 
         center._handleVoiceStateForTesting(.idle)
-        let idleSet = await waitUntil { center.statusMessage == "等待说话" }
+        let idleSet = await waitUntil { center.statusMessage == "VAD 待机" }
         XCTAssertTrue(idleSet)
 
         center._handleVoiceStateForTesting(.listening)
-        let listeningSet = await waitUntil { center.statusMessage == "正在监听..." }
+        let listeningSet = await waitUntil { center.statusMessage == "VAD 监听中" }
         XCTAssertTrue(listeningSet)
 
         center._handleVoiceStateForTesting(.speaking)
         try? await Task.sleep(nanoseconds: 50_000_000)
-        XCTAssertEqual(center.statusMessage, "正在监听...")
+        XCTAssertEqual(center.statusMessage, "VAD 监听中")
 
         center._handleVoiceStateForTesting(.processing)
         try? await Task.sleep(nanoseconds: 50_000_000)
-        XCTAssertEqual(center.statusMessage, "正在监听...")
-
-        center._handleVoiceStateForTesting(.interruptingPlayback)
-        let interruptSet = await waitUntil { center.statusMessage.contains("正在打断播放") }
-        XCTAssertTrue(interruptSet)
+        XCTAssertEqual(center.statusMessage, "VAD 监听中")
 
         center.isPlaying = true
-        center.statusMessage = "播报中"
+        center.statusMessage = "TTS 播放中"
         center._handlePlaybackStateForTesting(.idle)
-        XCTAssertEqual(center.statusMessage, "播报完成")
+        XCTAssertEqual(center.statusMessage, "TTS 空闲")
         XCTAssertFalse(center.isPlaying)
     }
 
@@ -137,7 +133,7 @@ final class AgentControlCenterCoverageTests: XCTestCase {
 
         center._handleVoiceStateForTesting(.idle)
 
-        let startupSet = await waitUntil { center.statusMessage == "正在启动采集..." }
+        let startupSet = await waitUntil { center.statusMessage == "启动语音采集" }
         XCTAssertTrue(startupSet)
         XCTAssertFalse(center.statusMessage.contains("采集已停止"))
     }
@@ -150,49 +146,77 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         center._handleVoiceStateForTesting(.listening)
 
         XCTAssertEqual(center.health, .healthy)
-        XCTAssertEqual(center.statusMessage, "正在监听...")
+        XCTAssertEqual(center.statusMessage, "VAD 监听中")
     }
 
     func testCompactStatusTextDoesNotMapCompletedState() {
         let center = AgentControlCenter()
         center.health = .healthy
 
-        center.statusMessage = "播报完成"
-        XCTAssertEqual(center.compactStatusText, "播报完成")
+        center.statusMessage = "TTS 空闲"
+        XCTAssertEqual(center.compactStatusText, "TTS 空闲")
 
-        center.statusMessage = "回复: 好的"
-        XCTAssertEqual(center.compactStatusText, "回复: 好的")
+        center.statusMessage = "Agent 响应: 好的"
+        XCTAssertEqual(center.compactStatusText, "Agent 响应: 好的")
 
-        center.statusMessage = "识别完成: 你好"
-        XCTAssertEqual(center.compactStatusText, "识别完成: 你好")
+        center.statusMessage = "ASR 完成: 你好"
+        XCTAssertEqual(center.compactStatusText, "ASR 完成: 你好")
     }
 
     func testCompactStatusTextUsesFriendlyASRNoResultPrompt() {
         let center = AgentControlCenter()
         center.health = .healthy
-        center.statusMessage = "ASR未识别到有效语音，请再说一次"
+        center.statusMessage = "ASR 未识别到有效语音"
 
-        XCTAssertEqual(center.compactStatusText, "未识别到，请再说一次")
+        XCTAssertEqual(center.compactStatusText, "没听清楚，请再说一次")
     }
 
     func testListeningDoesNotOverrideActiveRecognitionStatus() {
         let center = AgentControlCenter()
         center.health = .healthy
-        center.statusMessage = "识别中..."
+        center.statusMessage = "ASR 转写中"
 
         center._handleVoiceStateForTesting(.listening)
 
-        XCTAssertEqual(center.statusMessage, "识别中...")
+        XCTAssertEqual(center.statusMessage, "ASR 转写中")
     }
 
     func testListeningDoesNotOverrideASRNoResultStatus() {
         let center = AgentControlCenter()
         center.health = .healthy
-        center.statusMessage = "ASR未识别到有效语音，请再说一次"
+        center.statusMessage = "ASR 未识别到有效语音"
 
         center._handleVoiceStateForTesting(.listening)
 
-        XCTAssertEqual(center.statusMessage, "ASR未识别到有效语音，请再说一次")
+        XCTAssertEqual(center.statusMessage, "ASR 未识别到有效语音")
+    }
+
+    func testPlaybackRestartIdleDoesNotTriggerStoppedStatus() {
+        let center = AgentControlCenter()
+        center.health = .healthy
+        center.statusMessage = "TTS 播放中"
+        center._setHasVoiceCaptureEverStartedForTesting(true)
+        center._setRestartingVoiceCaptureAfterPlaybackForTesting(true)
+
+        center._handleVoiceStateForTesting(.idle)
+        XCTAssertEqual(center.statusMessage, "TTS 播放中")
+
+        center._handleVoiceStateForTesting(.listening)
+        XCTAssertEqual(center.statusMessage, "VAD 监听中")
+    }
+
+    func testTurnProcessingRestartIdleDoesNotTriggerStoppedStatus() {
+        let center = AgentControlCenter()
+        center.health = .healthy
+        center.statusMessage = "ASR 转写中"
+        center._setHasVoiceCaptureEverStartedForTesting(true)
+        center._setRestartingVoiceCaptureAfterTurnProcessingForTesting(true)
+
+        center._handleVoiceStateForTesting(.idle)
+        XCTAssertEqual(center.statusMessage, "ASR 转写中")
+
+        center._handleVoiceStateForTesting(.listening)
+        XCTAssertNotEqual(center.statusMessage, "VAD 待机")
     }
 
     func testVoiceErrorDuringStartupMarksServiceUnreachable() async {
@@ -227,11 +251,11 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         XCTAssertTrue(scheduled)
 
         center._handleVoiceStateForTesting(.listening)
-        XCTAssertEqual(center.statusMessage, "正在监听...")
+        XCTAssertEqual(center.statusMessage, "VAD 监听中")
 
         try? await Task.sleep(nanoseconds: 3_300_000_000)
         XCTAssertTrue(recoveryAttemptReasons.isEmpty)
-        XCTAssertEqual(center.statusMessage, "正在监听...")
+        XCTAssertEqual(center.statusMessage, "VAD 监听中")
     }
 
     func testIdleDoesNotOverwriteScheduledRecoveryStatus() async {
@@ -449,12 +473,12 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         center._setHealthForTesting(.healthy)
         center._setHasVoiceCaptureEverStartedForTesting(true)
         center._setIsPerformingVoiceRecoveryForTesting(true)
-        center.statusMessage = "正在恢复采集..."
+        center.statusMessage = "正在恢复采集"
 
         center._handleVoiceStateForTesting(.idle)
 
-        XCTAssertEqual(center.statusMessage, "正在恢复采集...")
+        XCTAssertEqual(center.statusMessage, "正在恢复采集")
         try? await Task.sleep(for: .milliseconds(120))
-        XCTAssertEqual(center.statusMessage, "正在恢复采集...")
+        XCTAssertEqual(center.statusMessage, "正在恢复采集")
     }
 }

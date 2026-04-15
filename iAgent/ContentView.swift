@@ -100,7 +100,7 @@ struct MenuBarPanel: View {
 
     private func handlePlayingChange(_ playing: Bool) {
         if playing {
-            showText("播报中...")
+            showText("播报中")
         }
     }
 

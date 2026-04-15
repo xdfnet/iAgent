@@ -88,10 +88,9 @@
 `VoiceService.State` 到 `AgentControlCenter.statusMessage`：
 
 - `idle` -> `等待说话`
-- `listening` -> `正在监听...`
-- `interruptingPlayback` -> `检测到语音，正在打断播放...`
-- `speaking` -> `检测到语音...`
-- `processing` -> `处理中...`
+- `listening` -> `正在监听`
+- `speaking` -> `检测到语音`
+- `processing` -> `处理中`
 
 此外：
 

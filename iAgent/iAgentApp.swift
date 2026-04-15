@@ -155,16 +155,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func currentPreviewText(for statusText: String) -> String? {
-        switch statusText {
-        case "思考中":
+        if statusText == "AI思考中" || statusText.hasPrefix("AI思考中") {
             let userText = normalizedMenuBarText(controlCenter.latestConversation.user)
             return userText.isEmpty ? nil : userText
-        case "播报中":
+        }
+        if statusText == "播报中" || statusText.hasPrefix("播报中") {
             let assistantText = normalizedMenuBarText(controlCenter.latestConversation.assistant)
             return assistantText.isEmpty ? nil : assistantText
-        default:
-            return nil
         }
+        return nil
     }
 
     private func updateTitle(statusText: String, previewText: String?) {
@@ -195,9 +194,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func shouldSuppressStatusDisplay(_ rawStatus: String) -> Bool {
-        rawStatus.hasPrefix("播报完成")
-            || rawStatus.hasPrefix("回复")
-            || rawStatus.hasPrefix("识别完成")
+        rawStatus.hasPrefix("TTS 空闲")
+            || rawStatus.hasPrefix("Agent 响应")
+            || rawStatus.hasPrefix("ASR 完成")
     }
 
     private func normalizedMenuBarText(_ rawText: String, maxLength: Int) -> String {

@@ -80,14 +80,13 @@ sequenceDiagram
 3. 按 `frameBytes` 持续读取 PCM 帧
 4. 计算 RMS 并运行 VAD 状态机
 5. 开口阈值命中后发出 `.speaking`
-6. 若 `interruptOnSpeech && playbackIsActive`，先发出 `.interruptingPlayback`
-7. 结束条件命中后：
+6. 结束条件命中后：
    - 发出 `.processing`
    - 合并 `speechFrames` 为 `VoiceSegment`
    - 通过 `segmentStream` 投递片段
    - 立即挂起新的语音检测
-8. 单段最长 8 秒，超时会强制收段
-9. 整轮处理真正结束后，`VoiceService` 才重新发出 `.listening`
+6. 单段最长 8 秒，超时会强制收段
+7. 整轮处理真正结束后，`VoiceService` 才重新发出 `.listening`
 
 当前默认 VAD 参数来自 `Configuration.shared.client.continuous`：
 
@@ -137,10 +136,10 @@ sequenceDiagram
 
 状态变化：
 
-- 片段进入处理：`statusMessage = "识别中..."`
-- ASR 完成：`statusMessage = "识别完成: ..."`
-- Agent 返回：`statusMessage = "回复: ..."`
-- 播报中：`statusMessage = "播报中"`
+- 片段进入处理：`statusMessage = "ASR 转写中"`
+- ASR 完成：`statusMessage = "ASR 完成"`
+- Agent 返回：`statusMessage = "Agent 响应: ..."`
+- 播报中：`statusMessage = "TTS 播放中"`
 - 播放完成后，才恢复 `listening`
 
 ## 7. 播放状态与菜单栏展示

@@ -178,7 +178,6 @@ actor VoiceService {
     enum State: Sendable {
         case idle
         case listening
-        case interruptingPlayback
         case speaking
         case processing
     }
@@ -196,8 +195,6 @@ actor VoiceService {
         var endSilenceFrames: Int = 28
         var prerollFrames: Int = 14
         var minSpeechFrames: Int = 12
-        var postInterruptCooldownSeconds: Double = 1.2
-        var interruptOnSpeech: Bool = false
         var inputDeviceIndex: String = "0"
 
         static var `default`: Config {
@@ -217,8 +214,6 @@ actor VoiceService {
                 endSilenceFrames: settings.endSilenceFrames,
                 prerollFrames: settings.prerollFrames,
                 minSpeechFrames: settings.minSpeechFrames,
-                postInterruptCooldownSeconds: settings.postInterruptCooldownSeconds,
-                interruptOnSpeech: settings.interruptOnSpeech,
                 inputDeviceIndex: clientSettings.inputDeviceIndex
             )
         }
@@ -267,7 +262,6 @@ actor VoiceService {
     private var captureTask: Task<Void, Never>?
     private var nativeCaptureSession: NativeAudioCaptureSession?
     private var playbackIsActive = false
-    private var lastInterruptAt: Date?
     private var speechDetectionCooldownUntil: Date?
     private var speechDetectionSuspended = false
     private var awaitingTurnCompletion = false
@@ -417,8 +411,6 @@ actor VoiceService {
         var segmentIndex = 0
         var segmentPeakLevel = 0
         var segmentThreshold = config.startThreshold
-        var segmentStartedWhilePlaying = false
-        var segmentDidInterruptPlayback = false
         var zeroLevelFrames = 0
         var adaptiveStartThreshold = config.startThreshold
         var adaptivePlayingStartThreshold = config.playingStartThreshold
@@ -452,12 +444,6 @@ actor VoiceService {
             localIsRunning = isRunning && sessionID == activeCaptureSessionID
             let level = calculateRMS(frame: frameData)
             let playing = playbackIsActive
-            let inInterruptCooldown: Bool
-            if let lastInterruptAt {
-                inInterruptCooldown = Date().timeIntervalSince(lastInterruptAt) < config.postInterruptCooldownSeconds
-            } else {
-                inInterruptCooldown = false
-            }
 
             if segmentIndex % 100 == 0 && silenceFrames == 0 {
                 let debugThreshold = playing ? adaptivePlayingStartThreshold : adaptiveStartThreshold
@@ -537,11 +523,6 @@ actor VoiceService {
                 var threshold = playing ? adaptivePlayingStartThreshold : adaptiveStartThreshold
                 var requiredFrames = playing ? config.playingStartFrames : config.startFrames
 
-                if inInterruptCooldown {
-                    threshold = max(threshold, adaptivePlayingStartThreshold)
-                    requiredFrames = max(requiredFrames, config.playingStartFrames)
-                }
-
                 if level >= threshold {
                     hotFrames += 1
                 } else {
@@ -556,14 +537,6 @@ actor VoiceService {
                     hotFrames = 0
                     segmentPeakLevel = level
                     segmentThreshold = threshold
-                    segmentStartedWhilePlaying = playing
-                    segmentDidInterruptPlayback = false
-                    if config.interruptOnSpeech && playing {
-                        playbackIsActive = false
-                        lastInterruptAt = Date()
-                        segmentDidInterruptPlayback = true
-                        stateContinuation?.yield(.interruptingPlayback)
-                    }
                     print("[VoiceService] 🔊 检测到语音！hotFrames: \(hotFrames), required: \(requiredFrames)")
                     stateContinuation?.yield(.speaking)
                 }
@@ -605,8 +578,7 @@ actor VoiceService {
                     )
                     print(
                         "[VoiceService] segment[\(segmentIndex)] duration=\(String(format: "%.2f", segmentDurationSeconds))s " +
-                        "peakRMS=\(segmentPeakLevel) startThreshold=\(segmentThreshold) endThreshold=\(effectiveEndThreshold) " +
-                        "startedWhilePlaying=\(segmentStartedWhilePlaying) interruptedPlayback=\(segmentDidInterruptPlayback)"
+                        "peakRMS=\(segmentPeakLevel) startThreshold=\(segmentThreshold) endThreshold=\(effectiveEndThreshold)"
                     )
 
                     segmentContinuation?.yield(segment)
@@ -618,8 +590,6 @@ actor VoiceService {
                     preroll.removeAll()
                     segmentPeakLevel = 0
                     segmentThreshold = config.startThreshold
-                    segmentStartedWhilePlaying = false
-                    segmentDidInterruptPlayback = false
                 }
             }
         }
@@ -732,10 +702,6 @@ actor VoiceService {
 extension VoiceService {
     func _setIsRunningForTesting(_ value: Bool) {
         isRunning = value
-    }
-
-    func _setLastInterruptAtForTesting(_ value: Date?) {
-        lastInterruptAt = value
     }
 
     func _emitErrorForTesting(_ message: String) {
