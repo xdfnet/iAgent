@@ -114,7 +114,7 @@ final class AgentControlCenterPipelineTests: XCTestCase {
 
         XCTAssertEqual(center.latestConversation.user, "飞哥回来了")
         XCTAssertEqual(center.latestConversation.assistant, "飞哥，欢迎回家。")
-        XCTAssertEqual(center.statusMessage, "TTS 空闲")
+        XCTAssertEqual(center.statusMessage, "VAD 监听中")
         let synthCountValue = await synthCount.get()
         let playCountValue = await playCount.get()
         XCTAssertEqual(synthCountValue, 1)

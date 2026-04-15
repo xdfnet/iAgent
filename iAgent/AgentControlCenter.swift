@@ -765,15 +765,10 @@ final class AgentControlCenter {
                 await self?.voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 0.8)
             }
             isProcessingVoiceTurn = false
-            // Turn 处理完成后，如果状态还是中间处理状态（且非错误状态），则重置为监听状态
-            // 避免上一轮的处理状态残留在界面上
-            // 错误状态（ASR失败、ASR未识别等）保留，由 catch 块设置
-            if !turnDidThrow {
-                let stalePrefixes = ["VAD 语音检测", "ASR 设备识别中", "ASR 转写中", "ASR 完成", "Agent 处理中"]
-                let current = self.statusMessage
-                if stalePrefixes.contains(where: { current.hasPrefix($0) }) {
-                    self.statusMessage = "VAD 监听中"
-                }
+            // 播报完成（autoSpeak=true）时才重置为倾听中
+            // 纯文本回复（autoSpeak=false）保持 Agent 响应状态
+            if !turnDidThrow && autoSpeak {
+                self.statusMessage = "VAD 监听中"
             }
         }
         statusMessage = "ASR 设备识别中"
@@ -882,11 +877,8 @@ final class AgentControlCenter {
                 await self?.voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 2.5)
             }
             isProcessingBehaviorTurn = false
-            // 行为触发播报完成后，重置为监听状态
-            let stalePrefixes = ["Agent 处理中", "TTS 播放中"]
-            if stalePrefixes.contains(where: { self.statusMessage.hasPrefix($0) }) {
-                self.statusMessage = "VAD 监听中"
-            }
+            // 播报完成后直接重置为倾听中
+            self.statusMessage = "VAD 监听中"
         }
 
         let displayText = "飞哥回来了"
