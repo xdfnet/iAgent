@@ -174,7 +174,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let normalizedPreview = normalizedMenuBarText(previewText)
             let combined = normalizedStatus.isEmpty
                 ? normalizedPreview
-                : "\(normalizedStatus)(\(normalizedPreview))"
+                : "\(normalizedStatus)（\(normalizedPreview)）"
             text = combined
         } else {
             text = normalizedStatus

@@ -44,12 +44,12 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
 
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "你好", assistant: "")
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " AI思考中(你好)")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " AI思考中（你好）")
 
         AgentControlCenter.shared.statusMessage = "TTS 播放中"
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "你好", assistant: "收到")
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(收到)")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中（收到）")
 
         AgentControlCenter.shared.statusMessage = "VAD 监听中"
         AgentControlCenter.shared.isPlaying = false
@@ -165,7 +165,7 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         )
 
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " AI思考中(第一行 第二行 第三行 第四行 第五行)")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " AI思考中（第一行 第二行 第三行 第四行 第五行）")
     }
 
     func testStatusFallbackTextIsTruncated() {
@@ -187,12 +187,12 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         AgentControlCenter.shared.statusMessage = "Agent 处理中"
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "豆包你在吗", assistant: "")
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " AI思考中(豆包你在吗)")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " AI思考中（豆包你在吗）")
 
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "豆包你在吗", assistant: "我在")
         AgentControlCenter.shared.statusMessage = "TTS 播放中"
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(我在)")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中（我在）")
     }
 
     func testCompletedStatusesDoNotReplaceCurrentMenuBarTitle() {
@@ -203,11 +203,11 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         AgentControlCenter.shared.statusMessage = "TTS 播放中"
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "豆包你在吗", assistant: "我在")
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(我在)")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中（我在）")
 
         AgentControlCenter.shared.statusMessage = "TTS 空闲"
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(我在)")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中（我在）")
 
         AgentControlCenter.shared.statusMessage = "VAD 监听中"
         AgentControlCenter.shared.latestConversation = .empty
