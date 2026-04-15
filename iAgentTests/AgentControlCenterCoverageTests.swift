@@ -328,6 +328,7 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         XCTAssertTrue(center.statusMessage.contains("启动失败"))
         await center.refreshStatus()
         XCTAssertTrue(center.runtimeDescription.contains("claude: missing"))
+        XCTAssertTrue(center.runtimeDescription.contains("spk:"))
 
         center._setRequiredAgentExecutableNameOverrideForTesting(nil)
     }

@@ -370,7 +370,7 @@ final class AgentControlCenter {
             _ = Configuration.reload()
             try await ensureMicrophoneAccess()
             try validateRuntimeDependencies()
-            try applyConfiguredInputDevicePreferenceIfNeeded()
+            try applyConfiguredAudioDevicePreferencesIfNeeded()
             await behaviorService.stopMonitoring(clearContext: false)
             await behaviorService.startMonitoring()
             print("[AgentControlCenter] 依赖验证通过")
@@ -441,6 +441,10 @@ final class AgentControlCenter {
         (try? AudioInputDeviceManager.inputDevices()) ?? []
     }
 
+    func availableOutputDevices() -> [AudioInputDeviceManager.OutputDevice] {
+        (try? AudioInputDeviceManager.outputDevices()) ?? []
+    }
+
     func selectInputDevice(uid: String) async throws {
         let devices = try AudioInputDeviceManager.inputDevices()
         guard let target = devices.first(where: { $0.uid == uid }) else {
@@ -452,13 +456,27 @@ final class AgentControlCenter {
         _ = Configuration.reload()
         updateRuntimeDescription()
 
-        if isServiceRunning {
-            await voiceService.stopListening()
-            try await voiceService.startListening()
-        }
+        try await rebuildAudioDevicesIfNeeded()
 
         statusMessage = "麦克风已切换: \(target.name)"
         print("[AgentControlCenter] 麦克风已切换: \(target.name), uid=\(uid)")
+    }
+
+    func selectOutputDevice(uid: String) async throws {
+        let devices = try AudioInputDeviceManager.outputDevices()
+        guard let target = devices.first(where: { $0.uid == uid }) else {
+            throw AudioInputDeviceManager.DeviceError.outputDeviceNotFound(uid)
+        }
+
+        try AudioInputDeviceManager.setDefaultOutputDevice(uid: uid)
+        Configuration.updateClientOutputDeviceUID(uid)
+        _ = Configuration.reload()
+        updateRuntimeDescription()
+
+        try await rebuildAudioDevicesIfNeeded()
+
+        statusMessage = "扬声器已切换: \(target.name)"
+        print("[AgentControlCenter] 扬声器已切换: \(target.name), uid=\(uid)")
     }
 
     func stopPlayback() {
@@ -530,20 +548,38 @@ final class AgentControlCenter {
         let microphoneName = ((try? AudioInputDeviceManager.inputDevices())?
             .first(where: \.isDefault)?
             .name) ?? "系统默认"
-        runtimeDescription = "claude: \(agentPath) | mic: \(microphoneName)"
+        let speakerName = ((try? AudioInputDeviceManager.outputDevices())?
+            .first(where: \.isDefault)?
+            .name) ?? "系统默认"
+        runtimeDescription = "claude: \(agentPath) | mic: \(microphoneName) | spk: \(speakerName)"
     }
 
-    private func applyConfiguredInputDevicePreferenceIfNeeded() throws {
+    private func applyConfiguredAudioDevicePreferencesIfNeeded() throws {
         let configuredValue = Configuration.shared.client.inputDeviceIndex
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !configuredValue.isEmpty, configuredValue != "0", configuredValue.lowercased() != "auto" {
+            let currentDefaultUID = try AudioInputDeviceManager.defaultInputDeviceUID()
+            if currentDefaultUID != configuredValue {
+                try AudioInputDeviceManager.setDefaultInputDevice(uid: configuredValue)
+            }
+        }
 
-        guard !configuredValue.isEmpty else { return }
-        guard configuredValue != "0", configuredValue.lowercased() != "auto" else { return }
+        let configuredOutputUID = Configuration.shared.client.outputDeviceUID
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !configuredOutputUID.isEmpty {
+            let currentOutputUID = try AudioInputDeviceManager.defaultOutputDeviceUID()
+            if currentOutputUID != configuredOutputUID {
+                try AudioInputDeviceManager.setDefaultOutputDevice(uid: configuredOutputUID)
+            }
+        }
+    }
 
-        let currentDefaultUID = try AudioInputDeviceManager.defaultInputDeviceUID()
-        guard currentDefaultUID != configuredValue else { return }
+    private func rebuildAudioDevicesIfNeeded() async throws {
+        guard isServiceRunning else { return }
 
-        try AudioInputDeviceManager.setDefaultInputDevice(uid: configuredValue)
+        await playbackService.stop()
+        await voiceService.stopListening()
+        try await voiceService.startListening()
     }
 
     private var requiredAgentExecutableName: String {

@@ -2,7 +2,7 @@
 //  AudioInputDeviceManager.swift
 //  iAgent
 //
-//  管理 macOS 输入设备列表与默认输入切换
+//  管理 macOS 输入/输出设备列表与默认设备切换
 //
 
 import CoreAudio
@@ -16,10 +16,19 @@ enum AudioInputDeviceManager {
         let isDefault: Bool
     }
 
+    struct OutputDevice: Sendable, Equatable {
+        let id: AudioDeviceID
+        let uid: String
+        let name: String
+        let isDefault: Bool
+    }
+
     enum DeviceError: LocalizedError {
         case propertyQueryFailed(String)
         case deviceNotFound(String)
         case updateDefaultFailed
+        case outputDeviceNotFound(String)
+        case updateDefaultOutputFailed
 
         var errorDescription: String? {
             switch self {
@@ -29,6 +38,10 @@ enum AudioInputDeviceManager {
                 return "未找到指定麦克风: \(uid)"
             case .updateDefaultFailed:
                 return "切换默认麦克风失败"
+            case .outputDeviceNotFound(let uid):
+                return "未找到指定扬声器: \(uid)"
+            case .updateDefaultOutputFailed:
+                return "切换默认扬声器失败"
             }
         }
     }
@@ -37,7 +50,7 @@ enum AudioInputDeviceManager {
         let defaultDeviceID = try defaultInputDeviceID()
         let devices = try allDeviceIDs()
 
-        return try devices.compactMap { deviceID in
+        return try devices.compactMap { deviceID -> InputDevice? in
             guard try hasInputChannels(deviceID) else { return nil }
             let uid = try stringProperty(
                 deviceID,
@@ -49,8 +62,40 @@ enum AudioInputDeviceManager {
                 selector: kAudioObjectPropertyName,
                 scope: kAudioObjectPropertyScopeGlobal
             )
-            guard shouldDisplayInputDevice(name: name, uid: uid) else { return nil }
+            guard shouldDisplayDevice(name: name, uid: uid) else { return nil }
             return InputDevice(
+                id: deviceID,
+                uid: uid,
+                name: name,
+                isDefault: deviceID == defaultDeviceID
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.isDefault != rhs.isDefault {
+                return lhs.isDefault
+            }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    static func outputDevices() throws -> [OutputDevice] {
+        let defaultDeviceID = try defaultOutputDeviceID()
+        let devices = try allDeviceIDs()
+
+        return try devices.compactMap { deviceID -> OutputDevice? in
+            guard try hasOutputChannels(deviceID) else { return nil }
+            let uid = try stringProperty(
+                deviceID,
+                selector: kAudioDevicePropertyDeviceUID,
+                scope: kAudioObjectPropertyScopeGlobal
+            )
+            let name = try stringProperty(
+                deviceID,
+                selector: kAudioObjectPropertyName,
+                scope: kAudioObjectPropertyScopeGlobal
+            )
+            guard shouldDisplayDevice(name: name, uid: uid) else { return nil }
+            return OutputDevice(
                 id: deviceID,
                 uid: uid,
                 name: name,
@@ -91,6 +136,40 @@ enum AudioInputDeviceManager {
 
     static func defaultInputDeviceUID() throws -> String? {
         let defaultID = try defaultInputDeviceID()
+        guard defaultID != 0 else { return nil }
+        return try stringProperty(
+            defaultID,
+            selector: kAudioDevicePropertyDeviceUID,
+            scope: kAudioObjectPropertyScopeGlobal
+        )
+    }
+
+    static func setDefaultOutputDevice(uid: String) throws {
+        guard let target = try outputDevices().first(where: { $0.uid == uid }) else {
+            throw DeviceError.outputDeviceNotFound(uid)
+        }
+
+        var deviceID = target.id
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectSetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            UInt32(MemoryLayout<AudioDeviceID>.size),
+            &deviceID
+        )
+        guard status == noErr else {
+            throw DeviceError.updateDefaultOutputFailed
+        }
+    }
+
+    static func defaultOutputDeviceUID() throws -> String? {
+        let defaultID = try defaultOutputDeviceID()
         guard defaultID != 0 else { return nil }
         return try stringProperty(
             defaultID,
@@ -155,10 +234,43 @@ enum AudioInputDeviceManager {
         return deviceID
     }
 
+    private static func defaultOutputDeviceID() throws -> AudioDeviceID {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var deviceID = AudioDeviceID()
+        var dataSize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            &dataSize,
+            &deviceID
+        )
+        guard status == noErr else {
+            throw DeviceError.propertyQueryFailed("kAudioHardwarePropertyDefaultOutputDevice")
+        }
+        return deviceID
+    }
+
     private static func hasInputChannels(_ deviceID: AudioDeviceID) throws -> Bool {
+        try hasChannels(deviceID, scope: kAudioDevicePropertyScopeInput)
+    }
+
+    private static func hasOutputChannels(_ deviceID: AudioDeviceID) throws -> Bool {
+        try hasChannels(deviceID, scope: kAudioDevicePropertyScopeOutput)
+    }
+
+    private static func hasChannels(
+        _ deviceID: AudioDeviceID,
+        scope: AudioObjectPropertyScope
+    ) throws -> Bool {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyStreamConfiguration,
-            mScope: kAudioDevicePropertyScopeInput,
+            mScope: scope,
             mElement: kAudioObjectPropertyElementMain
         )
         var dataSize: UInt32 = 0
@@ -214,7 +326,7 @@ enum AudioInputDeviceManager {
         return (cfValue ?? "" as CFString) as String
     }
 
-    private static func shouldDisplayInputDevice(name: String, uid: String) -> Bool {
+    private static func shouldDisplayDevice(name: String, uid: String) -> Bool {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let normalizedUID = uid.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 

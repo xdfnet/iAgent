@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let maxStatusLength = 10
     private var diagnosticsRefreshTask: Task<Void, Never>?
     private var microphoneSubmenu: NSMenu?
+    private var speakerSubmenu: NSMenu?
     private var behaviorStatusItem: NSMenuItem?
     private var behaviorEventItems: [NSMenuItem] = []
     var terminateHandler: (() -> Void)?
@@ -103,6 +104,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.microphoneSubmenu = microphoneSubmenu
         refreshMicrophoneMenu()
 
+        let speakerItem = NSMenuItem(title: "扬声器", action: nil, keyEquivalent: "")
+        let speakerSubmenu = NSMenu(title: "扬声器")
+        speakerItem.submenu = speakerSubmenu
+        menu.addItem(speakerItem)
+        self.speakerSubmenu = speakerSubmenu
+        refreshSpeakerMenu()
+
         menu.addItem(NSMenuItem.separator())
         let behaviorHeaderItem = NSMenuItem(title: "行为诊断", action: nil, keyEquivalent: "")
         behaviorHeaderItem.isEnabled = false
@@ -129,6 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         refreshMicrophoneMenu()
+        refreshSpeakerMenu()
     }
 
     private func updateIcon(_ name: String) {
@@ -253,6 +262,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    private func refreshSpeakerMenu() {
+        guard let speakerSubmenu else { return }
+
+        speakerSubmenu.removeAllItems()
+        let devices = controlCenter.availableOutputDevices()
+
+        guard !devices.isEmpty else {
+            let emptyItem = NSMenuItem(title: "未发现输出设备", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            speakerSubmenu.addItem(emptyItem)
+            return
+        }
+
+        for device in devices {
+            let item = NSMenuItem(
+                title: device.name,
+                action: #selector(selectOutputDeviceFromMenu(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.state = device.isDefault ? .on : .off
+            item.representedObject = device.uid
+            speakerSubmenu.addItem(item)
+        }
+    }
+
     @objc
     private func selectInputDeviceFromMenu(_ sender: NSMenuItem) {
         guard let uid = sender.representedObject as? String else { return }
@@ -261,8 +296,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             do {
                 try await self?.controlCenter.selectInputDevice(uid: uid)
                 self?.refreshMicrophoneMenu()
+                self?.refreshSpeakerMenu()
             } catch {
                 print("[AppDelegate] 麦克风切换失败: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    @objc
+    private func selectOutputDeviceFromMenu(_ sender: NSMenuItem) {
+        guard let uid = sender.representedObject as? String else { return }
+
+        Task { @MainActor [weak self] in
+            do {
+                try await self?.controlCenter.selectOutputDevice(uid: uid)
+                self?.refreshSpeakerMenu()
+                self?.refreshMicrophoneMenu()
+            } catch {
+                print("[AppDelegate] 扬声器切换失败: \(error.localizedDescription)")
             }
         }
     }

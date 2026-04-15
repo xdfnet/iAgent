@@ -34,6 +34,12 @@ struct Configuration: Codable, Sendable {
             $0.client.inputDeviceIndex = inputDeviceIndex
         }
     }
+
+    nonisolated static func updateClientOutputDeviceUID(_ outputDeviceUID: String) {
+        store.update {
+            $0.client.outputDeviceUID = outputDeviceUID
+        }
+    }
 }
 
 enum ConfigurationError: Error, LocalizedError {
@@ -207,15 +213,18 @@ struct ClientContinuousSettings: Codable, Sendable {
 
 struct ClientSettings: Codable, Sendable {
     var inputDeviceIndex: String
+    var outputDeviceUID: String
     var audio: ClientAudioSettings
     var continuous: ClientContinuousSettings
 
     nonisolated init(
         inputDeviceIndex: String = "0",
+        outputDeviceUID: String = "",
         audio: ClientAudioSettings = ClientAudioSettings(),
         continuous: ClientContinuousSettings = ClientContinuousSettings()
     ) {
         self.inputDeviceIndex = inputDeviceIndex
+        self.outputDeviceUID = outputDeviceUID
         self.audio = audio
         self.continuous = continuous
     }
@@ -353,6 +362,7 @@ private struct ConfigurationLoader {
                 ],
                 "client": [
                     "inputDeviceIndex": config.client.inputDeviceIndex,
+                    "outputDeviceUID": config.client.outputDeviceUID,
                     "audio": [
                         "sampleRate": config.client.audio.sampleRate,
                         "channels": config.client.audio.channels,
@@ -442,6 +452,9 @@ private extension Configuration {
         agent.workdir = environment["IAGENT_AGENT_WORKDIR"]?.trimmedNonEmpty ?? agent.workdir
         agent.timeoutSeconds = environment["IAGENT_AGENT_TIMEOUT_SECONDS"].flatMap(Int.init) ?? agent.timeoutSeconds
 
+        client.inputDeviceIndex = environment["IAGENT_CLIENT_INPUT_DEVICE_UID"]?.trimmedNonEmpty ?? client.inputDeviceIndex
+        client.outputDeviceUID = environment["IAGENT_CLIENT_OUTPUT_DEVICE_UID"]?.trimmedNonEmpty ?? client.outputDeviceUID
+
         behavior.enabled = environment["IAGENT_BEHAVIOR_ENABLED"].flatMap(Self.boolValue) ?? behavior.enabled
         behavior.routerSSHHost = environment["IAGENT_BEHAVIOR_ROUTER_SSH_HOST"]?.trimmedNonEmpty ?? behavior.routerSSHHost
         behavior.monitoredPhoneMAC = environment["IAGENT_BEHAVIOR_PHONE_MAC"]?.trimmedNonEmpty ?? behavior.monitoredPhoneMAC
@@ -507,6 +520,7 @@ private extension BehaviorSettings {
 private extension ClientSettings {
     nonisolated mutating func apply(fileOverride: [String: Any]) {
         inputDeviceIndex = fileOverride.stringValue(for: "inputDeviceIndex") ?? inputDeviceIndex
+        outputDeviceUID = fileOverride.stringValue(for: "outputDeviceUID") ?? outputDeviceUID
         if let audio = fileOverride["audio"] as? [String: Any] {
             self.audio.apply(fileOverride: audio)
         }
