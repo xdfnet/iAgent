@@ -882,6 +882,11 @@ final class AgentControlCenter {
                 await self?.voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 2.5)
             }
             isProcessingBehaviorTurn = false
+            // 行为触发播报完成后，重置为监听状态
+            let stalePrefixes = ["Agent 处理中", "TTS 播放中"]
+            if stalePrefixes.contains(where: { self.statusMessage.hasPrefix($0) }) {
+                self.statusMessage = "VAD 监听中"
+            }
         }
 
         let displayText = "飞哥回来了"
