@@ -638,7 +638,7 @@ final class AgentControlCenter {
                 if self.health == .starting {
                     self.voiceRecoveryController.cancel()
                     self.health = .unreachable
-                    self.statusMessage = "启动失败: \(message)"
+                    self.statusMessage = "采集异常: \(message)"
                     print("[AgentControlCenter] 采集启动失败: \(message)")
                     await self.voiceService.stopListening()
                     continue

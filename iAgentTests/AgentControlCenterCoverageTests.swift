@@ -227,12 +227,12 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         await center._emitVoiceErrorForTesting("设备初始化失败")
 
         let failed = await waitUntil {
-            center.health == .unreachable && center.statusMessage == "启动失败: 设备初始化失败"
+            center.health == .unreachable && center.statusMessage == "采集异常: 设备初始化失败"
         }
         XCTAssertTrue(failed)
 
         center._handleVoiceStateForTesting(.idle)
-        XCTAssertEqual(center.statusMessage, "启动失败: 设备初始化失败")
+        XCTAssertEqual(center.statusMessage, "采集异常: 设备初始化失败")
     }
 
     func testListeningCancelsScheduledRecoveryBeforeItFires() async {
