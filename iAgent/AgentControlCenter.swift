@@ -759,7 +759,6 @@ final class AgentControlCenter {
         print("[AgentControlCenter] 收到语音片段，bytes=\(audioData.count)")
         isProcessingVoiceTurn = true
         await voiceService.setSpeechDetectionSuspended(true)
-        var didPauseVoiceCaptureForTurn = false
         var turnDidThrow = false
         defer {
             Task { [weak self] in
@@ -796,9 +795,6 @@ final class AgentControlCenter {
             }
             print("[AgentControlCenter] 设备识别完成，当前采集设备: \(inputDevice)")
 
-            await pauseVoiceCaptureForTurnProcessing()
-            didPauseVoiceCaptureForTurn = true
-
             statusMessage = "ASR 转写中"
             let asrStart = Date()
             let transcript = try await transcribeAudioData(audioData)
@@ -808,16 +804,11 @@ final class AgentControlCenter {
                 "text_len=\(transcript.count), text=\(formatLogText(transcript))"
             )
 
-            let shouldAutoSpeak = autoSpeak
             try await processTranscript(
                 transcript,
-                shouldAutoSpeak: shouldAutoSpeak,
+                shouldAutoSpeak: autoSpeak,
                 showRecognizedTranscript: true
             )
-            if didPauseVoiceCaptureForTurn, !shouldAutoSpeak {
-                try await resumeVoiceCaptureAfterTurnProcessing()
-                didPauseVoiceCaptureForTurn = false
-            }
             let totalElapsed = Date().timeIntervalSince(segmentStart)
             print("[AgentControlCenter] 语音片段处理完成，总耗时=\(String(format: "%.2f", totalElapsed))s")
         } catch {
@@ -829,24 +820,6 @@ final class AgentControlCenter {
                 statusMessage = "处理失败: \(error.localizedDescription)"
             }
             print("[AgentControlCenter] 语音片段处理失败: \(error)")
-            if didPauseVoiceCaptureForTurn {
-                do {
-                    try await resumeVoiceCaptureAfterTurnProcessing()
-                    didPauseVoiceCaptureForTurn = false
-                } catch {
-                    isRestartingVoiceCaptureAfterTurnProcessing = false
-                    statusMessage = "VAD 采集恢复中"
-                    voiceRecoveryController.scheduleRetry(
-                        reason: "处理完成后恢复采集失败",
-                        health: health,
-                        statusUpdater: { self.statusMessage = $0 },
-                        recoveryTrigger: { [weak self] reason in
-                            await self?.attemptVoiceRecovery(reason: reason)
-                        }
-                    )
-                    print("[AgentControlCenter] 处理完成后恢复采集失败: \(error.localizedDescription)")
-                }
-            }
         }
     }
 
@@ -942,66 +915,20 @@ final class AgentControlCenter {
         statusMessage = "TTS 播放中"
         print("[AgentControlCenter] 开始播报，text=\(formatLogText(text))")
 
-        let voiceCaptureAlreadyPausedForTurn = isRestartingVoiceCaptureAfterTurnProcessing
-        let shouldPauseVoiceCaptureForPlayback = isServiceRunning && !voiceCaptureAlreadyPausedForTurn
-        let shouldResumeVoiceCapture = isServiceRunning
-        do {
-            if shouldPauseVoiceCaptureForPlayback {
-                await pauseVoiceCaptureForPlayback()
-            }
+        let ttsStart = Date()
+        let audioData = try await synthesizeSpeech(text)
+        let ttsElapsed = Date().timeIntervalSince(ttsStart)
+        print("[AgentControlCenter] TTS 完成，耗时=\(String(format: "%.2f", ttsElapsed))s, bytes=\(audioData.count)")
 
-            let ttsStart = Date()
-            let audioData = try await synthesizeSpeech(text)
-            let ttsElapsed = Date().timeIntervalSince(ttsStart)
-            print("[AgentControlCenter] TTS 完成，耗时=\(String(format: "%.2f", ttsElapsed))s, bytes=\(audioData.count)")
+        let playStart = Date()
+        try await playAudioData(audioData, interrupt: true)
+        try await playbackService.waitUntilFinished()
+        let playElapsed = Date().timeIntervalSince(playStart)
+        print("[AgentControlCenter] Playback 请求完成，耗时=\(String(format: "%.2f", playElapsed))s")
 
-            let playStart = Date()
-            try await playAudioData(audioData, interrupt: true)
-            try await playbackService.waitUntilFinished()
-            let playElapsed = Date().timeIntervalSince(playStart)
-            print("[AgentControlCenter] Playback 请求完成，耗时=\(String(format: "%.2f", playElapsed))s")
-
-            let stillPlaying = await playbackService.isPlaying
-            if !stillPlaying {
-                statusMessage = "TTS 空闲"
-            }
-
-            if shouldResumeVoiceCapture {
-                if voiceCaptureAlreadyPausedForTurn {
-                    try await resumeVoiceCaptureAfterTurnProcessing()
-                } else {
-                    try await resumeVoiceCaptureAfterPlayback()
-                }
-            }
-        } catch {
-            if shouldResumeVoiceCapture {
-                do {
-                    if voiceCaptureAlreadyPausedForTurn {
-                        try await resumeVoiceCaptureAfterTurnProcessing()
-                    } else {
-                        try await resumeVoiceCaptureAfterPlayback()
-                    }
-                } catch {
-                    if voiceCaptureAlreadyPausedForTurn {
-                        isRestartingVoiceCaptureAfterTurnProcessing = false
-                    } else {
-                        isRestartingVoiceCaptureAfterPlayback = false
-                    }
-                    statusMessage = "VAD 采集恢复中"
-                    voiceRecoveryController.scheduleRetry(
-                        reason: "播报后恢复采集失败",
-                        health: health,
-                        statusUpdater: { self.statusMessage = $0 },
-                        recoveryTrigger: { [weak self] reason in
-                            await self?.attemptVoiceRecovery(reason: reason)
-                        }
-                    )
-                    print("[AgentControlCenter] 播报后恢复采集失败: \(error.localizedDescription)")
-                }
-            } else {
-                isRestartingVoiceCaptureAfterPlayback = false
-            }
-            throw error
+        let stillPlaying = await playbackService.isPlaying
+        if !stillPlaying {
+            statusMessage = "TTS 空闲"
         }
     }
 
@@ -1012,7 +939,7 @@ final class AgentControlCenter {
             return
         }
         isRestartingVoiceCaptureAfterTurnProcessing = true
-        await voiceService.stopListening()
+        await voiceService.setSpeechDetectionSuspended(true)
     }
 
     private func resumeVoiceCaptureAfterTurnProcessing() async throws {
@@ -1021,7 +948,8 @@ final class AgentControlCenter {
             isRestartingVoiceCaptureAfterTurnProcessing = false
             return
         }
-        try await voiceService.startListening()
+        isRestartingVoiceCaptureAfterTurnProcessing = false
+        await voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 0.8)
     }
 
     private func pauseVoiceCaptureForPlayback() async {
@@ -1031,7 +959,7 @@ final class AgentControlCenter {
             return
         }
         isRestartingVoiceCaptureAfterPlayback = true
-        await voiceService.stopListening()
+        await voiceService.setSpeechDetectionSuspended(true)
     }
 
     private func resumeVoiceCaptureAfterPlayback() async throws {
@@ -1040,7 +968,8 @@ final class AgentControlCenter {
             isRestartingVoiceCaptureAfterPlayback = false
             return
         }
-        try await voiceService.startListening()
+        isRestartingVoiceCaptureAfterPlayback = false
+        await voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 2.5)
     }
 
     private func transcribeAudioData(_ audioData: Data) async throws -> String {

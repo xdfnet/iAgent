@@ -696,6 +696,11 @@ actor VoiceService {
         isRunning
     }
 
+    /// VAD 检测是否被暂停
+    var isDetectionSuspended: Bool {
+        speechDetectionSuspended
+    }
+
 }
 
 #if DEBUG
