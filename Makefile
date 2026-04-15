@@ -3,7 +3,7 @@
 # 作者: David
 # 版本: 1.0
 
-.PHONY: debug push help _update_version
+.PHONY: debug push install help _update_version
 
 # =============================================================================
 # 项目配置
@@ -40,13 +40,15 @@ help:
 	@echo ""
 	@echo "$(GREEN)核心命令:$(NC)"
 	@echo "  $(YELLOW)debug$(NC)       - 构建并运行 Debug 版本"
-	@echo "  $(YELLOW)push$(NC)        - 构建并安装 Release 版本 (需要 MSG=\"提交信息\")"
+	@echo "  $(YELLOW)install$(NC)      - 构建并安装 Release 版本 (不提交)"
+	@echo "  $(YELLOW)push$(NC)        - 构建并安装 Release 版本并提交 (需要 MSG=\"提交信息\")"
 	@echo ""
 	@echo "$(GREEN)其他:$(NC)"
 	@echo "  $(YELLOW)help$(NC)        - 显示此帮助信息"
 	@echo ""
 	@echo "$(GREEN)使用示例:$(NC)"
 	@echo "  $(CYAN)make debug$(NC)                    - 开发调试"
+	@echo "  $(CYAN)make install$(NC)                  - Release 构建并安装"
 	@echo "  $(CYAN)make push MSG=\"修复bug\"$(NC)       - Release 构建安装并提交"
 
 debug:
@@ -78,6 +80,39 @@ debug:
 		echo "$(GREEN)✅ 应用已启动$(NC)"; \
 	else \
 		echo "$(RED)❌ 找不到构建的应用程序$(NC)"; \
+		exit 1; \
+	fi
+
+install:
+	@echo "$(BLUE)开始 Release 构建安装...$(NC)"
+	@echo "$(YELLOW)1. 停止运行中的应用...$(NC)"
+	@pkill -f "$(PROJECT_NAME)" 2>/dev/null || true
+	@echo "$(YELLOW)2. 卸载旧版本...$(NC)"
+	@rm -rf "$(INSTALL_DIR)/$(PROJECT_NAME).app" 2>/dev/null || true
+	@echo "$(GREEN)✅ 旧版本已卸载$(NC)"
+	@echo "$(YELLOW)3. 清理构建文件...$(NC)"
+	@rm -rf $(BUILD_DIR)
+	@rm -rf $(DERIVED_DATA_DIR)/$(PROJECT_NAME)-*
+	@rm -rf $(ARCHIVE_DIR)
+	@echo "$(GREEN)✅ 清理完成$(NC)"
+	@echo "$(YELLOW)4. 构建 Release 版本...$(NC)"
+	@xcodebuild \
+		-project $(PROJECT_NAME).xcodeproj \
+		-scheme $(SCHEME_NAME) \
+		-configuration Release \
+		-derivedDataPath $(BUILD_DIR) \
+		-destination 'platform=macOS' \
+		build
+	@echo "$(GREEN)✅ Release 构建完成$(NC)"
+
+	@echo "$(YELLOW)5. 安装到 Applications...$(NC)"
+	@APP_PATH=$$(find $(BUILD_DIR) -name "$(PROJECT_NAME).app" -type d | head -1); \
+	if [ -n "$$APP_PATH" ]; then \
+		cp -R "$$APP_PATH" $(INSTALL_DIR)/; \
+		echo "$(GREEN)✅ 安装完成: $(INSTALL_DIR)/$(PROJECT_NAME).app$(NC)"; \
+		echo "$(GREEN)✅ 可直接打开应用或使用 open -a iAgent$(NC)"; \
+	else \
+		echo "$(RED)❌ 错误: 找不到构建的应用程序$(NC)"; \
 		exit 1; \
 	fi
 

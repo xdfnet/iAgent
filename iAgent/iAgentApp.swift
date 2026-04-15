@@ -68,6 +68,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             updateIcon("mic")
         }
 
+        let rawStatus = controlCenter.statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !shouldSuppressStatusDisplay(rawStatus) else { return }
+
         let statusText = controlCenter.compactStatusText.trimmingCharacters(in: .whitespacesAndNewlines)
         let previewText = currentPreviewText(for: statusText)
         updateTitle(statusText: statusText, previewText: previewText)
@@ -135,6 +138,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func syncStatusTitle() {
+        let rawStatus = controlCenter.statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !shouldSuppressStatusDisplay(rawStatus) else { return }
+
         let status = controlCenter.compactStatusText.trimmingCharacters(in: .whitespacesAndNewlines)
         updateTitle(statusText: status, previewText: nil)
     }
@@ -160,7 +166,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let normalizedPreview = normalizedMenuBarText(previewText)
             let combined = normalizedStatus.isEmpty
                 ? normalizedPreview
-                : "\(normalizedStatus)...\(normalizedPreview)"
+                : "\(normalizedStatus)(\(normalizedPreview))"
             text = combined
         } else {
             text = normalizedStatus
@@ -177,6 +183,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .filter { !$0.isEmpty }
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func shouldSuppressStatusDisplay(_ rawStatus: String) -> Bool {
+        rawStatus.hasPrefix("播报完成")
+            || rawStatus.hasPrefix("回复")
+            || rawStatus.hasPrefix("识别完成")
     }
 
     private func normalizedMenuBarText(_ rawText: String, maxLength: Int) -> String {

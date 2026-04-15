@@ -313,6 +313,9 @@ final class AgentControlCenter {
         if status.hasPrefix("启动失败") {
             return "启动失败"
         }
+        if status.hasPrefix("ASR未识别") {
+            return "未识别到，请再说一次"
+        }
         if status.hasPrefix("ASR失败")
             || status.hasPrefix("Agent失败")
             || status.hasPrefix("播报失败")
@@ -337,10 +340,6 @@ final class AgentControlCenter {
         if status.hasPrefix("正在监听") || status.hasPrefix("等待说话") {
             return "待命中"
         }
-        if status.hasPrefix("播报完成") || status.hasPrefix("回复") || status.hasPrefix("识别完成") {
-            return "已完成"
-        }
-
         return status
     }
 
@@ -917,13 +916,29 @@ final class AgentControlCenter {
     }
 
     private func shouldPublishCaptureStatus(for state: VoiceService.State) -> Bool {
-        guard isProcessingVoiceTurn else { return true }
         switch state {
-        case .listening, .processing:
+        case .processing, .speaking:
             return false
+        case .listening:
+            if isProcessingVoiceTurn || isProcessingBehaviorTurn {
+                return false
+            }
+            let currentStatus = statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+            let blockedPrefixes = [
+                "设备识别中",
+                "识别中",
+                "ASR未识别",
+                "ASR失败",
+                "处理失败",
+                "Agent处理中",
+                "处理中",
+                "回复:",
+                "回复已返回"
+            ]
+            return !blockedPrefixes.contains { currentStatus.hasPrefix($0) }
         case .idle:
-            return health != .healthy
-        case .interruptingPlayback, .speaking:
+            return true
+        case .interruptingPlayback:
             return true
         }
     }

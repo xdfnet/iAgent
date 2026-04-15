@@ -44,12 +44,12 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
 
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "你好", assistant: "")
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 思考中...你好")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 思考中(你好)")
 
         AgentControlCenter.shared.statusMessage = "播报中"
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "你好", assistant: "收到")
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中...收到")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(收到)")
 
         AgentControlCenter.shared.statusMessage = "正在监听..."
         AgentControlCenter.shared.isPlaying = false
@@ -165,7 +165,7 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         )
 
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 思考中...第一行 第二行 第三行 第四行 第五行")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 思考中(第一行 第二行 第三行 第四行 第五行)")
     }
 
     func testStatusFallbackTextIsTruncated() {
@@ -187,12 +187,32 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         AgentControlCenter.shared.statusMessage = "Agent处理中..."
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "豆包你在吗", assistant: "")
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 思考中...豆包你在吗")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 思考中(豆包你在吗)")
 
         AgentControlCenter.shared.latestConversation = AgentConversation(user: "豆包你在吗", assistant: "我在")
         AgentControlCenter.shared.statusMessage = "播报中"
         delegate._pollConversationForTesting()
-        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中...我在")
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(我在)")
+    }
+
+    func testCompletedStatusesDoNotReplaceCurrentMenuBarTitle() {
+        let delegate = AppDelegate()
+        delegate._setupStatusItemForTesting()
+
+        AgentControlCenter.shared.health = .healthy
+        AgentControlCenter.shared.statusMessage = "播报中"
+        AgentControlCenter.shared.latestConversation = AgentConversation(user: "豆包你在吗", assistant: "我在")
+        delegate._pollConversationForTesting()
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(我在)")
+
+        AgentControlCenter.shared.statusMessage = "播报完成"
+        delegate._pollConversationForTesting()
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 播报中(我在)")
+
+        AgentControlCenter.shared.statusMessage = "正在监听..."
+        AgentControlCenter.shared.latestConversation = .empty
+        delegate._pollConversationForTesting()
+        XCTAssertEqual(delegate._statusTitleForTesting(), " 待命中")
     }
 
     func testStatusTitleFallbackWhenStatusItemNotSetup() {

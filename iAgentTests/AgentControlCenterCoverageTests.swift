@@ -111,12 +111,12 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         XCTAssertTrue(listeningSet)
 
         center._handleVoiceStateForTesting(.speaking)
-        let speakingSet = await waitUntil { center.statusMessage == "检测到语音..." }
-        XCTAssertTrue(speakingSet)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(center.statusMessage, "正在监听...")
 
         center._handleVoiceStateForTesting(.processing)
-        let processingSet = await waitUntil { center.statusMessage == "处理中..." }
-        XCTAssertTrue(processingSet)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(center.statusMessage, "正在监听...")
 
         center._handleVoiceStateForTesting(.interruptingPlayback)
         let interruptSet = await waitUntil { center.statusMessage.contains("正在打断播放") }
@@ -151,6 +151,48 @@ final class AgentControlCenterCoverageTests: XCTestCase {
 
         XCTAssertEqual(center.health, .healthy)
         XCTAssertEqual(center.statusMessage, "正在监听...")
+    }
+
+    func testCompactStatusTextDoesNotMapCompletedState() {
+        let center = AgentControlCenter()
+        center.health = .healthy
+
+        center.statusMessage = "播报完成"
+        XCTAssertEqual(center.compactStatusText, "播报完成")
+
+        center.statusMessage = "回复: 好的"
+        XCTAssertEqual(center.compactStatusText, "回复: 好的")
+
+        center.statusMessage = "识别完成: 你好"
+        XCTAssertEqual(center.compactStatusText, "识别完成: 你好")
+    }
+
+    func testCompactStatusTextUsesFriendlyASRNoResultPrompt() {
+        let center = AgentControlCenter()
+        center.health = .healthy
+        center.statusMessage = "ASR未识别到有效语音，请再说一次"
+
+        XCTAssertEqual(center.compactStatusText, "未识别到，请再说一次")
+    }
+
+    func testListeningDoesNotOverrideActiveRecognitionStatus() {
+        let center = AgentControlCenter()
+        center.health = .healthy
+        center.statusMessage = "识别中..."
+
+        center._handleVoiceStateForTesting(.listening)
+
+        XCTAssertEqual(center.statusMessage, "识别中...")
+    }
+
+    func testListeningDoesNotOverrideASRNoResultStatus() {
+        let center = AgentControlCenter()
+        center.health = .healthy
+        center.statusMessage = "ASR未识别到有效语音，请再说一次"
+
+        center._handleVoiceStateForTesting(.listening)
+
+        XCTAssertEqual(center.statusMessage, "ASR未识别到有效语音，请再说一次")
     }
 
     func testVoiceErrorDuringStartupMarksServiceUnreachable() async {
