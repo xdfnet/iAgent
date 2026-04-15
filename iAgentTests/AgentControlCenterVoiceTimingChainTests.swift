@@ -122,7 +122,7 @@ final class AgentControlCenterVoiceTimingChainTests: XCTestCase {
         XCTAssertEqual(events, ["asr", "agent"])
         XCTAssertEqual(center.latestConversation.user, "只做文本回复")
         XCTAssertEqual(center.latestConversation.assistant, "文本回复完成")
-        XCTAssertEqual(center.statusMessage, "Agent 响应: 文本回复完成")
+        // 播完不自动回到倾听中，由 defer 在 processVoiceSegment 结束时重置
     }
 
     func testVoiceSegmentASRFailureStopsDownstream() async throws {

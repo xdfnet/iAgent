@@ -765,9 +765,7 @@ final class AgentControlCenter {
                 await self?.voiceService.setSpeechDetectionSuspended(false, cooldownSeconds: 0.8)
             }
             isProcessingVoiceTurn = false
-            // 播报完成（autoSpeak=true）时才重置为倾听中
-            // 纯文本回复（autoSpeak=false）保持 Agent 响应状态
-            if !turnDidThrow && autoSpeak {
+            if !turnDidThrow {
                 self.statusMessage = "VAD 监听中"
             }
         }
@@ -801,8 +799,7 @@ final class AgentControlCenter {
 
             try await processTranscript(
                 transcript,
-                shouldAutoSpeak: autoSpeak,
-                showRecognizedTranscript: true
+                shouldAutoSpeak: autoSpeak
             )
             let totalElapsed = Date().timeIntervalSince(segmentStart)
             print("[AgentControlCenter] 语音片段处理完成，总耗时=\(String(format: "%.2f", totalElapsed))s")
@@ -820,16 +817,9 @@ final class AgentControlCenter {
 
     private func processTranscript(
         _ transcript: String,
-        shouldAutoSpeak: Bool,
-        showRecognizedTranscript: Bool
+        shouldAutoSpeak: Bool
     ) async throws {
         latestConversation = AgentConversation(user: transcript, assistant: "")
-        if showRecognizedTranscript {
-            statusMessage = "ASR 完成"
-        } else {
-            statusMessage = "Agent 处理中"
-        }
-
         statusMessage = "Agent 处理中"
         let agentStart = Date()
         let response: AgentService.Response
@@ -846,10 +836,6 @@ final class AgentControlCenter {
         )
 
         latestConversation = AgentConversation(user: transcript, assistant: response.replyText)
-        if showRecognizedTranscript {
-            statusMessage = "Agent 响应: \(response.replyText)"
-        }
-
         await conversationMemory.addTurn(user: transcript, assistant: response.replyText)
 
         if shouldAutoSpeak {
@@ -1062,8 +1048,7 @@ final class AgentControlCenter {
     func _processTranscriptForTesting(_ transcript: String, shouldAutoSpeak: Bool) async throws {
         try await processTranscript(
             transcript,
-            shouldAutoSpeak: shouldAutoSpeak,
-            showRecognizedTranscript: false
+            shouldAutoSpeak: shouldAutoSpeak
         )
     }
 
