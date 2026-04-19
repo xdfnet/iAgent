@@ -27,7 +27,7 @@ final class AgentServiceCoverageTests: XCTestCase {
     func testParseAndHelperMethods() async throws {
         let service = AgentService(
             config: .init(
-                qwenPath: "/bin/echo",
+                claudePath: "/bin/echo",
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 1
             )
@@ -56,12 +56,12 @@ final class AgentServiceCoverageTests: XCTestCase {
         let missingCommand = await service._findExecutableForTesting("missing_cmd_\(UUID().uuidString)")
         XCTAssertNil(missingCommand)
 
-        let claudeResult = try await service._parseQwenOutputForTesting(#"{"type":"result","subtype":"success","result":"claude text","session_id":"sid-claude"}"#)
+        let claudeResult = try await service._parseClaudeOutputForTesting(#"{"type":"result","subtype":"success","result":"claude text","session_id":"sid-claude"}"#)
         XCTAssertEqual(claudeResult.replyText, "claudetext")
         XCTAssertEqual(claudeResult.sessionId, "sid-claude")
 
         do {
-            _ = try await service._parseQwenOutputForTesting(#"{"type":"result"}"#)
+            _ = try await service._parseClaudeOutputForTesting(#"{"type":"result"}"#)
             XCTFail("expected parse error")
         } catch {
             XCTAssertTrue((error as? AgentError)?.errorDescription?.contains("解析错误") == true)
@@ -75,7 +75,7 @@ final class AgentServiceCoverageTests: XCTestCase {
     func testRunProcessLaunchFailedExecutionFailedAndTimeout() async throws {
         let badWorkdirService = AgentService(
             config: .init(
-                qwenPath: "/bin/echo",
+                claudePath: "/bin/echo",
                 workdir: "/tmp/not-exist-\(UUID().uuidString)",
                 timeoutSeconds: 1
             )
@@ -105,7 +105,7 @@ final class AgentServiceCoverageTests: XCTestCase {
         )
         let executionFailedService = AgentService(
             config: .init(
-                qwenPath: failingScript.path,
+                claudePath: failingScript.path,
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 2
             )
@@ -135,7 +135,7 @@ final class AgentServiceCoverageTests: XCTestCase {
         )
         let timeoutService = AgentService(
             config: .init(
-                qwenPath: timeoutScript.path,
+                claudePath: timeoutScript.path,
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 1
             )
@@ -186,7 +186,7 @@ final class AgentServiceCoverageTests: XCTestCase {
 
         let service = AgentService(
             config: .init(
-                qwenPath: scriptURL.path,
+                claudePath: scriptURL.path,
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 5
             )
@@ -215,7 +215,7 @@ final class AgentServiceCoverageTests: XCTestCase {
 
         let service = AgentService(
             config: .init(
-                qwenPath: nil,
+                claudePath: nil,
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 5
             )
@@ -231,7 +231,7 @@ final class AgentServiceCoverageTests: XCTestCase {
     func testExecuteFailsWhenExecutableCannotBeResolved() async {
         let service = AgentService(
             config: .init(
-                qwenPath: nil,
+                claudePath: nil,
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 2
             )
@@ -257,14 +257,14 @@ final class AgentServiceCoverageTests: XCTestCase {
     func testParseAgentOutputRejectsInvalidTopLevel() async {
         let service = AgentService(
             config: .init(
-                qwenPath: "/bin/echo",
+                claudePath: "/bin/echo",
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 1
             )
         )
 
         do {
-            _ = try await service._parseQwenOutputForTesting(#"[{"type":"result"}]"#)
+            _ = try await service._parseClaudeOutputForTesting(#"[{"type":"result"}]"#)
             XCTFail("expected parse error")
         } catch let error as AgentError {
             if case .parseError(let message) = error {
@@ -277,10 +277,29 @@ final class AgentServiceCoverageTests: XCTestCase {
         }
     }
 
+    func testParseClaudeOutputSupportsJSONLMessages() async throws {
+        let service = AgentService(
+            config: .init(
+                claudePath: "/bin/echo",
+                workdir: validTestWorkdir(),
+                timeoutSeconds: 1
+            )
+        )
+
+        let output = """
+        {"type":"system","session_id":"sid-jsonl"}
+        {"type":"result","subtype":"success","result":"jsonl result"}
+        """
+
+        let response = try await service._parseClaudeOutputForTesting(output)
+        XCTAssertEqual(response.replyText, "jsonlresult")
+        XCTAssertEqual(response.sessionId, "sid-jsonl")
+    }
+
     func testConfiguredExecutablePathDefaultCaseReturnsNil() async {
         let service = AgentService(
             config: .init(
-                qwenPath: nil,
+                claudePath: nil,
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 1
             )
@@ -304,7 +323,7 @@ final class AgentServiceCoverageTests: XCTestCase {
 
         let service = AgentService(
             config: .init(
-                qwenPath: script.path,
+                claudePath: script.path,
                 workdir: validTestWorkdir(),
                 timeoutSeconds: 5
             )

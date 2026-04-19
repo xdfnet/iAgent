@@ -15,7 +15,7 @@ iAgent 是一款本地语音助手，运行于 macOS 菜单栏。通过语音完
 - 任何 CLI 能做到的事：只要说句话，Agent 帮你跑
 
 **技术链路：**
-麦克风 → VoiceService（`AVAudioEngine`）→ 字节跳动 ASR → Agent（Qwen CLI）→ 字节跳动 TTS → 播放
+麦克风 → VoiceService（`AVAudioEngine`）→ 字节跳动 ASR → Agent（Claude Code CLI）→ 字节跳动 TTS → 播放
 
 ## 项目结构
 
@@ -37,7 +37,7 @@ iAgent/
 ## 依赖要求
 
 - **Agent CLI**：
-  - [Qwen CLI](https://github.com/QwenLM/qwen-cli)
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
 
 - **字节跳动 API**：ASR 和 TTS 凭证
 

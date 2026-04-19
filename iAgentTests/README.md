@@ -27,7 +27,7 @@
 - 主管线：`Voice Segment -> ASR -> Agent -> TTS -> Playback`
 - 分支：`autoSpeak=false`、ASR 失败下游短路
 - 播放状态流：`idle -> playing -> idle`
-- 会话续接：Qwen `--resume`
+- 会话续接：Claude Code `--resume`
 - 本地 HTTP / SSE：ASR 普通 JSON、TTS SSE 流式音频拼接
 - 采集分段：`VoiceService` 捕获循环 + VAD 分段产出
 - 服务生命周期：`bootstrap/start/toggle/stop`、菜单栏 Observation 更新、退出清理

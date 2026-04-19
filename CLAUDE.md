@@ -40,7 +40,7 @@ open -a iAgent
 | `VoiceService` | 语音活动检测、原生麦克风采集 | AVFoundation |
 | `ASRService` | 字节跳动 ASR API 语音转文字 | 字节跳动 API |
 | `TTSService` | 字节跳动 TTS API 文字转语音 | 字节跳动 API |
-| `AgentService` | 执行 Qwen CLI | qwen 可执行文件 |
+| `AgentService` | 执行 Claude Code CLI | claude 可执行文件 |
 | `PlaybackService` | 音频播放（AVFoundation） | - |
 | `ConversationMemory` | 保存最近 12 轮对话上下文 | - |
 
@@ -56,7 +56,7 @@ open -a iAgent
 `Configuration.shared` 是全局配置单例，包含：
 - `speechToText`: ASR API 凭证
 - `textToSpeech`: TTS API 凭证
-- `agent`: Qwen 工作目录、超时设置
+- `agent`: Claude Code 工作目录、超时设置
 - `client`: 麦克风设备索引、VAD 参数
 
 运行时按”环境变量 -> JSON 配置文件 -> 代码默认值”优先级加载。
@@ -86,11 +86,11 @@ open -a iAgent
 
 ### ExecutableLocator
 
-工具类定义在 `AudioProcessor.swift` 中，用于在 `PATH`、`/opt/homebrew/bin`、`/usr/local/bin` 中查找可执行文件（qwen）。
+工具类定义在 `AudioProcessor.swift` 中，用于在 `PATH`、`/opt/homebrew/bin`、`/usr/local/bin` 中查找可执行文件（claude）。
 
 ## 依赖要求
 
-- **Agent CLI**: qwen
+- **Agent CLI**: claude
 - **字节跳动 API**: ASR 和 TTS 凭证
 
 ## 外部脚本

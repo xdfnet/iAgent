@@ -81,7 +81,7 @@ final class AgentServiceSessionIntegrationTests: XCTestCase {
 
         let service = AgentService(
             config: .init(
-                qwenPath: scriptURL.path,
+                claudePath: scriptURL.path,
                 workdir: validAgentSessionTestWorkdir(),
                 timeoutSeconds: 5
             )

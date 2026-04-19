@@ -26,7 +26,7 @@
 - `AgentControlCenter`：全局编排器，负责服务生命周期、状态绑定与主管线调度
 - `VoiceService`：原生音频采集，负责 VAD、状态流和片段流
 - `ASRService`：调用 ASR HTTP API，返回 transcript
-- `AgentService`：调用 `qwen` CLI，并维护 `currentSessionId`
+- `AgentService`：调用 `claude` CLI，并维护 `currentSessionId`
 - `TTSService`：调用 TTS API，返回音频数据
 - `PlaybackService`：通过 `AVAudioPlayer` 或 `afplay` 播放音频，并发出播放状态
 - `ConversationMemory`：保存最近轮次对话
@@ -171,7 +171,7 @@ statusMessage = "VAD 监听中"
 `AgentService.execute(prompt, sessionId: nil)` 的逻辑：
 
 1. 计算 `effectiveSessionId = sessionId ?? currentSessionId`
-2. Qwen 使用 `--resume <effectiveSessionId>`
+2. Claude Code 使用 `--resume <effectiveSessionId>`
 3. 若本轮输出里解析到新的 `session_id`，覆盖 `currentSessionId`
 
 ## 9. 配置生效时序
@@ -215,7 +215,7 @@ statusMessage = "VAD 监听中"
 - `PlaybackServiceStateStreamTests` / `PlaybackServiceCoverageTests`
   - 播放状态流、等待与回退路径
 - `AgentServiceSessionIntegrationTests`
-  - Qwen 会话续接
+  - Claude Code 会话续接
 - `ASRAndTTSLocalIntegrationTests`
   - ASR 本地 HTTP 解析与 TTS SSE 解析
 

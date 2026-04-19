@@ -72,15 +72,14 @@ actor AgentService {
     static let executableName = "claude"
 
     struct Config: Sendable {
-        // 历史命名保留为 qwenPath，用作自定义 Agent CLI 路径覆盖。
-        var qwenPath: String?
+        var claudePath: String?
         var workdir: String
         var timeoutSeconds: Int
 
         static var `default`: Config {
             let settings = Configuration.shared.agent
             return Config(
-                qwenPath: nil,
+                claudePath: nil,
                 workdir: settings.workdir,
                 timeoutSeconds: settings.timeoutSeconds
             )
@@ -265,35 +264,59 @@ actor AgentService {
     /// 解析 Agent CLI 输出
     private func parseAgentOutput(_ output: String) throws -> Response {
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard let data = trimmed.data(using: .utf8) else {
-            throw AgentError.parseError("无法解析输出")
+        guard !trimmed.isEmpty else {
+            throw AgentError.parseError("Claude Code 返回为空")
         }
 
-        guard let message = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        // 兼容单条 JSON 与 JSONL（逐行事件）两种输出形式。
+        if let singleMessage = decodeJSONObject(from: trimmed) {
+            return try parseClaudeMessages([singleMessage])
+        }
+
+        let messages = trimmed
+            .split(whereSeparator: \.isNewline)
+            .compactMap { decodeJSONObject(from: String($0)) }
+        guard !messages.isEmpty else {
             throw AgentError.parseError("Claude Code 返回格式异常")
         }
-        return try parseClaudeResult(message)
+        return try parseClaudeMessages(messages)
     }
 
-    private func parseClaudeResult(_ message: [String: Any]) throws -> Response {
-        let type = message["type"] as? String
-        let subtype = message["subtype"] as? String
-        let isSuccess = type == "result" || subtype == "success"
-        guard isSuccess else {
-            throw AgentError.parseError("Claude Code 返回格式异常")
+    private func decodeJSONObject(from raw: String) -> [String: Any]? {
+        guard let data = raw.data(using: .utf8) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    }
+
+    private func parseClaudeMessages(_ messages: [[String: Any]]) throws -> Response {
+        var latestSessionId: String?
+        var latestReplyText: String?
+
+        for message in messages {
+            if let sessionId = (message["session_id"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+                !sessionId.isEmpty
+            {
+                latestSessionId = sessionId
+            }
+
+            let type = message["type"] as? String
+            let subtype = message["subtype"] as? String
+            let isSuccess = type == "result" || subtype == "success"
+            guard isSuccess else { continue }
+
+            let replyText = (message["result"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !replyText.isEmpty {
+                latestReplyText = replyText
+            }
         }
 
-        let replyText = (message["result"] as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !replyText.isEmpty else {
+        guard let replyText = latestReplyText else {
             throw AgentError.parseError("Claude Code 没有返回可播报内容")
         }
 
-        let sessionId = (message["session_id"] as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
         let compressed = compressForSpeech(replyText)
-        return Response(replyText: compressed, sessionId: sessionId)
+        return Response(replyText: compressed, sessionId: latestSessionId)
     }
 
     /// 为语音播报压缩文本
@@ -347,9 +370,7 @@ actor AgentService {
         let configuredPath: String?
         switch executable {
         case "claude":
-            configuredPath = config.qwenPath
-        case "qwen":
-            configuredPath = config.qwenPath
+            configuredPath = config.claudePath
         default:
             configuredPath = nil
         }
@@ -404,7 +425,8 @@ extension AgentService {
     func _setFindExecutableOverrideForTesting(_ override: ((String) -> String?)?) {
         findExecutableOverrideForTesting = override
     }
-    func _parseQwenOutputForTesting(_ output: String) throws -> Response {
+
+    func _parseClaudeOutputForTesting(_ output: String) throws -> Response {
         try parseAgentOutput(output)
     }
 

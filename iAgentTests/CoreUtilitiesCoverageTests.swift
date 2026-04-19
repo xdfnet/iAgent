@@ -60,7 +60,7 @@ final class CoreUtilitiesCoverageTests: XCTestCase {
         XCTAssertEqual(TTSError.noAudioData.errorDescription, "TTS 未返回音频数据")
         XCTAssertTrue((TTSError.synthesisFailed("bad").errorDescription ?? "").contains("bad"))
 
-        XCTAssertTrue((AgentError.executableNotFound("qwen").errorDescription ?? "").contains("qwen"))
+        XCTAssertTrue((AgentError.executableNotFound("claude").errorDescription ?? "").contains("claude"))
         XCTAssertTrue((AgentError.launchFailed("x").errorDescription ?? "").contains("x"))
         XCTAssertTrue((AgentError.executionFailed(statusCode: 2, output: "", error: "stderr").errorDescription ?? "").contains("2"))
         XCTAssertTrue((AgentError.parseError("bad").errorDescription ?? "").contains("bad"))

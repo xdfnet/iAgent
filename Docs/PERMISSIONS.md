@@ -8,7 +8,7 @@ Relevant code paths:
 
 - `VoiceService` uses `AVAudioEngine` to capture microphone input.
 - `ASRService` and `TTSService` call remote APIs over `URLSession`.
-- `AgentService` launches the local `qwen` CLI via `Process`.
+- `AgentService` launches the local `claude` CLI via `Process`.
 
 ## Current Configuration
 
@@ -71,4 +71,4 @@ Add permissions only when the feature ships:
 
 ## App Store / Sandbox Note
 
-If the project later targets Mac App Store distribution, permissions alone will not be enough. The execution model must be revisited because the current `Process + qwen + non-sandbox` design is not App Sandbox friendly.
+If the project later targets Mac App Store distribution, permissions alone will not be enough. The execution model must be revisited because the current `Process + claude + non-sandbox` design is not App Sandbox friendly.
