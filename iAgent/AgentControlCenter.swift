@@ -390,6 +390,9 @@ final class AgentControlCenter {
 
             print("[AgentControlCenter] 服务启动完成，等待首个监听状态")
         } catch {
+            behaviorObserverTask?.cancel()
+            behaviorObserverTask = nil
+            await behaviorService.stopMonitoring(clearContext: false)
             health = .unreachable
             statusMessage = "启动失败: \(error.localizedDescription)"
             print("[AgentControlCenter] 启动失败: \(error)")
@@ -412,6 +415,8 @@ final class AgentControlCenter {
         behaviorObserverTask = nil
         voiceTask?.cancel()
         voiceTask = nil
+        deviceSwitchStatusResetTask?.cancel()
+        deviceSwitchStatusResetTask = nil
 
         await behaviorService.stopMonitoring(clearContext: true)
         await voiceService.stopListening()
@@ -742,7 +747,7 @@ final class AgentControlCenter {
                 )
             }
         )
-        if statusMessage == "麦克风监听中" {
+        if statusMessage == "VAD 监听中" {
             print("[AgentControlCenter] 采集恢复成功")
         }
     }

@@ -520,8 +520,8 @@ actor VoiceService {
                     continue
                 }
 
-                var threshold = playing ? adaptivePlayingStartThreshold : adaptiveStartThreshold
-                var requiredFrames = playing ? config.playingStartFrames : config.startFrames
+                let threshold = playing ? adaptivePlayingStartThreshold : adaptiveStartThreshold
+                let requiredFrames = playing ? config.playingStartFrames : config.startFrames
 
                 if level >= threshold {
                     hotFrames += 1

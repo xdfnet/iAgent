@@ -61,13 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func renderControlCenterState() {
-        if controlCenter.isPlaying {
-            updateIcon("speaker.wave.2.fill")
-        } else if controlCenter.isServiceRunning {
-            updateIcon("mic.fill")
-        } else {
-            updateIcon("mic")
-        }
+        updateIcon(controlCenter.menuBarSymbolName)
 
         let rawStatus = controlCenter.statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !shouldSuppressStatusDisplay(rawStatus) else { return }
