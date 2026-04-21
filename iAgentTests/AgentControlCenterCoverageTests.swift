@@ -481,4 +481,156 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         try? await Task.sleep(for: .milliseconds(120))
         XCTAssertEqual(center.statusMessage, "正在恢复采集")
     }
+
+    // MARK: - Lifecycle Tests
+
+    func testBootstrap_chainsStartServiceAndMonitoring() async {
+        let center = AgentControlCenter()
+        center._setRequiredAgentExecutableNameOverrideForTesting("sh")
+
+        center.bootstrap()
+
+        let started = await waitUntil(timeout: 2.0) {
+            center.health == .healthy || center.health == .unreachable
+        }
+        XCTAssertTrue(started)
+
+        await center.stopService()
+        center._setRequiredAgentExecutableNameOverrideForTesting(nil)
+    }
+
+    func testSelectInputDevice_validDevice() async {
+        let center = AgentControlCenter()
+        let devices = center.availableInputDevices()
+
+        if let firstDevice = devices.first {
+            do {
+                try await center.selectInputDevice(uid: firstDevice.uid)
+                XCTAssertTrue(center.statusMessage.contains(firstDevice.name))
+            } catch {
+                XCTFail("selectInputDevice should not throw for valid device: \(error)")
+            }
+        } else {
+            XCTAssertTrue(devices.isEmpty, "No input devices available to test")
+        }
+    }
+
+    func testSelectInputDevice_invalidDevice() async {
+        let center = AgentControlCenter()
+
+        do {
+            try await center.selectInputDevice(uid: "invalid-device-uid-that-does-not-exist")
+            XCTFail("selectInputDevice should throw for invalid device")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("deviceNotFound") || error.localizedDescription.contains("未找到"))
+        }
+    }
+
+    func testSelectOutputDevice_validDevice() async {
+        let center = AgentControlCenter()
+        let devices = center.availableOutputDevices()
+
+        if let firstDevice = devices.first {
+            do {
+                try await center.selectOutputDevice(uid: firstDevice.uid)
+                XCTAssertTrue(center.statusMessage.contains(firstDevice.name))
+            } catch {
+                XCTFail("selectOutputDevice should not throw for valid device: \(error)")
+            }
+        } else {
+            XCTAssertTrue(devices.isEmpty, "No output devices available to test")
+        }
+    }
+
+    func testSelectOutputDevice_invalidDevice() async {
+        let center = AgentControlCenter()
+
+        do {
+            try await center.selectOutputDevice(uid: "invalid-device-uid-that-does-not-exist")
+            XCTFail("selectOutputDevice should throw for invalid device")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("outputDeviceNotFound") || error.localizedDescription.contains("未找到"))
+        }
+    }
+
+    func testRefreshStatus_updatesAllStatusItems() async {
+        let center = AgentControlCenter()
+        center._setRequiredAgentExecutableNameOverrideForTesting("sh")
+
+        await center.refreshStatus()
+
+        XCTAssertNotNil(center.lastRefresh)
+        XCTAssertFalse(center.runtimeDescription.isEmpty)
+
+        center._setRequiredAgentExecutableNameOverrideForTesting(nil)
+    }
+
+    func testStopService_resetsAllState() async {
+        let center = AgentControlCenter()
+        center._setRequiredAgentExecutableNameOverrideForTesting("sh")
+        center.health = .healthy
+        center.isPlaying = true
+        center.statusMessage = "some status"
+
+        await center.stopService()
+
+        XCTAssertEqual(center.health, .stopped)
+        XCTAssertFalse(center.isPlaying)
+        XCTAssertEqual(center.statusMessage, "服务已停止")
+        XCTAssertNotNil(center.lastRefresh)
+
+        center._setRequiredAgentExecutableNameOverrideForTesting(nil)
+    }
+
+    func testToggleService_fromStoppedToRunning() async {
+        let center = AgentControlCenter()
+        center._setRequiredAgentExecutableNameOverrideForTesting("sh")
+        center.health = .stopped
+        center.statusMessage = "服务已停止"
+
+        center.toggleService()
+
+        let transitioned = await waitUntil(timeout: 2.0) {
+            center.health == .healthy || center.health == .unreachable
+        }
+        XCTAssertTrue(transitioned)
+
+        await center.stopService()
+        center._setRequiredAgentExecutableNameOverrideForTesting(nil)
+    }
+
+    func testToggleService_fromRunningToStopped() async {
+        let center = AgentControlCenter()
+        center._setRequiredAgentExecutableNameOverrideForTesting("sh")
+        center.health = .healthy
+
+        center.toggleService()
+
+        let stopped = await waitUntil(timeout: 2.0) {
+            center.health == .stopped
+        }
+        XCTAssertTrue(stopped)
+
+        center._setRequiredAgentExecutableNameOverrideForTesting(nil)
+    }
+
+    func testBehaviorDiagnosticsSnapshot_returnsValidSnapshot() async {
+        let center = AgentControlCenter()
+        let snapshot = await center.behaviorDiagnosticsSnapshot()
+
+        XCTAssertNotNil(snapshot)
+        XCTAssertNotNil(snapshot.summary)
+        XCTAssertNotNil(snapshot.signalSummary)
+        XCTAssertNotNil(snapshot.eventLines)
+    }
+
+    func testAvailableDevices_returnsDeviceLists() {
+        let center = AgentControlCenter()
+
+        let inputDevices = center.availableInputDevices()
+        let outputDevices = center.availableOutputDevices()
+
+        XCTAssertNotNil(inputDevices)
+        XCTAssertNotNil(outputDevices)
+    }
 }

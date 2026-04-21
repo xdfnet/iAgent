@@ -1,0 +1,74 @@
+name: iAgent
+options:
+  bundleIdPrefix: David
+  deploymentTarget:
+    macOS: "26.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: K9UF7A2D7Y
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    COMBINE_HIDPI_IMAGES: YES
+    CURRENT_PROJECT_VERSION: 1
+
+targets:
+  iAgent:
+    type: application
+    platform: macOS
+    sources:
+      - path: iAgent
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: David.iAgent
+        CODE_SIGN_ENTITLEMENTS: iAgent/iAgent.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        ENABLE_HARDENED_RUNTIME: YES
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "iAgent 需要访问麦克风进行语音识别"
+        MARKETING_VERSION: "1.0.28"
+    dependencies: []
+
+  iAgentTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: iAgentTests
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: David.iAgentTests
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_EMIT_LOC_STRINGS: NO
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/iAgent.app/Contents/MacOS/iAgent"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        MARKETING_VERSION: "1.0.28"
+    dependencies:
+      - target: iAgent
+
+schemes:
+  iAgent:
+    build:
+      targets:
+        iAgent: all
+        iAgentTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - iAgentTests
+    archive:
+      config: Release

@@ -3,79 +3,151 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 100;
+	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		03350426268D5E6FAAF1FB62 /* AgentServiceCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4548E19C0193A78B3F3901D /* AgentServiceCoverageTests.swift */; };
+		03B38D6EB3F55E96B97B388A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F317398AF2461F974EA6BA8F /* main.swift */; };
+		03C7291D3928C3B9CC1E379D /* ASRAndTTSErrorCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3033DA3A79E2F1CB2A3F0932 /* ASRAndTTSErrorCoverageTests.swift */; };
+		052BAFF007CF44AC2B7FEA7F /* AgentServiceSessionIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA3EE6B9ED13215D6209E03 /* AgentServiceSessionIntegrationTests.swift */; };
+		087D0B22F21C505AF41E934E /* iAgentApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FF4F6CF181A9C01A89DFF7C /* iAgentApp.swift */; };
+		1673CB05992A6D8C44D01E70 /* PlaybackServiceCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51D2AE2D7B755912CDAAE36C /* PlaybackServiceCoverageTests.swift */; };
+		1B8891C550CBAFD37FA56230 /* VoiceServiceCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266034419E51E623D86E5F45 /* VoiceServiceCoverageTests.swift */; };
+		3FAA73D4A5ABB11577D1FA20 /* AgentControlCenterPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE7BC513902923A1421E3E1 /* AgentControlCenterPipelineTests.swift */; };
+		487707F7C95ADA1E0F327602 /* AgentControlCenterVoiceTimingChainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 965084303528C7B66996B565 /* AgentControlCenterVoiceTimingChainTests.swift */; };
+		637F95E013EBB701B9D00D39 /* PlaybackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46C3E5D39A064C7FECCC3ED5 /* PlaybackService.swift */; };
+		7B77AC1A3E21F6A5E2BF2E52 /* AudioProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34DA243D4460DF23B59146B6 /* AudioProcessor.swift */; };
+		7C263A91F24134BA865B24D2 /* PlaybackServiceStateStreamTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D4431A0762DE33520044F4 /* PlaybackServiceStateStreamTests.swift */; };
+		7E750EA87218E9FB98AAFBC3 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA795454F42F2D7F263501AB /* Configuration.swift */; };
+		80321D0E29FBEAE5988E74F3 /* AgentControlCenterCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B6484A7F9BAECBE5EDD9DC /* AgentControlCenterCoverageTests.swift */; };
+		8259459940DFC11BFA7ABD69 /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67405006938A648E5DD6DCC /* VoiceService.swift */; };
+		99871D73DFB39CE90FEA991B /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DAB821459B3CC36FCBBB22 /* TTSService.swift */; };
+		9CB3F09A2A52B795B238B042 /* CoreUtilitiesCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1553B3EE953115AD898A72F0 /* CoreUtilitiesCoverageTests.swift */; };
+		ACD853881D9F2F618E26C6CC /* AudioInputDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B84238C9C0236765ED5A07 /* AudioInputDeviceManager.swift */; };
+		B9313BA90BEEED74E2B26B7C /* ASRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A53A012858A648F7371B4B /* ASRService.swift */; };
+		BE0CA522A99A1C8ED3190DA8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75AEB7E6C2C9B77061C6E6D /* ContentView.swift */; };
+		C16B5AC7AF002881712F595B /* AgentControlCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE357A10495D7B07D052738F /* AgentControlCenter.swift */; };
+		C2891558210218A73FD54EAE /* AgentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C4FF67A38D57B8913B517C4 /* AgentService.swift */; };
+		CAA20336B435C88A4ADD5C57 /* ASRAndTTSLocalIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5DD942A4BA268D7C69C94DD /* ASRAndTTSLocalIntegrationTests.swift */; };
+		CB167230CD99D36170A84C80 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563F06B608E4D057FE24F0AB /* Logger.swift */; };
+		D0198C73017F5959AA0DF934 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 6D7DC9C563AC3BA4AB1F5587 /* README.md */; };
+		DBF624D7EE8684E7B8267F6F /* BehaviorServiceCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0019DCB844D317C458CC6DE3 /* BehaviorServiceCoverageTests.swift */; };
+		E4EE99F73A7CF9750BB7AE22 /* ConversationMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178268D435C3F518DDC12D6D /* ConversationMemory.swift */; };
+		E50E1B371647EF41235153A8 /* BehaviorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D803CB0537F21AAC1DBE780 /* BehaviorService.swift */; };
+		F5328A5E7CC6421852090325 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2499F101139DEA7B3F45BFED /* ConfigurationTests.swift */; };
+		F773610A8DFDA9A1060757E8 /* AppDelegateAndViewCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ADE1811C4CBA379A3338548 /* AppDelegateAndViewCoverageTests.swift */; };
+		F7FE0BD309C6A559B8EFE6D2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D8100AFFD2C1A2203AE0606 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
-		183E5BE22F83BB61006F3EC6 /* PBXContainerItemProxy */ = {
+		44BF3FD94E99DCC86438AA7D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 183E5BCC2F83BB60006F3EC6 /* Project object */;
+			containerPortal = BC4464C898A70EA05710E7FB /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 183E5BD32F83BB60006F3EC6;
-			remoteInfo = iAgent;
-		};
-		183E5BEC2F83BB61006F3EC6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 183E5BCC2F83BB60006F3EC6 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 183E5BD32F83BB60006F3EC6;
+			remoteGlobalIDString = 8F7B03E1659D55B9ABF3DD95;
 			remoteInfo = iAgent;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		183E5BD42F83BB60006F3EC6 /* iAgent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iAgent.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		183E5BE12F83BB61006F3EC6 /* iAgentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iAgentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		183E5BEB2F83BB61006F3EC6 /* iAgentUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iAgentUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0019DCB844D317C458CC6DE3 /* BehaviorServiceCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehaviorServiceCoverageTests.swift; sourceTree = "<group>"; };
+		03B6484A7F9BAECBE5EDD9DC /* AgentControlCenterCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentControlCenterCoverageTests.swift; sourceTree = "<group>"; };
+		0BA3EE6B9ED13215D6209E03 /* AgentServiceSessionIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentServiceSessionIntegrationTests.swift; sourceTree = "<group>"; };
+		1553B3EE953115AD898A72F0 /* CoreUtilitiesCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreUtilitiesCoverageTests.swift; sourceTree = "<group>"; };
+		178268D435C3F518DDC12D6D /* ConversationMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationMemory.swift; sourceTree = "<group>"; };
+		18A53A012858A648F7371B4B /* ASRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASRService.swift; sourceTree = "<group>"; };
+		2499F101139DEA7B3F45BFED /* ConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationTests.swift; sourceTree = "<group>"; };
+		266034419E51E623D86E5F45 /* VoiceServiceCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceServiceCoverageTests.swift; sourceTree = "<group>"; };
+		3033DA3A79E2F1CB2A3F0932 /* ASRAndTTSErrorCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASRAndTTSErrorCoverageTests.swift; sourceTree = "<group>"; };
+		34DA243D4460DF23B59146B6 /* AudioProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioProcessor.swift; sourceTree = "<group>"; };
+		3ADE1811C4CBA379A3338548 /* AppDelegateAndViewCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateAndViewCoverageTests.swift; sourceTree = "<group>"; };
+		46C3E5D39A064C7FECCC3ED5 /* PlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackService.swift; sourceTree = "<group>"; };
+		51D2AE2D7B755912CDAAE36C /* PlaybackServiceCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackServiceCoverageTests.swift; sourceTree = "<group>"; };
+		563F06B608E4D057FE24F0AB /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		63B84238C9C0236765ED5A07 /* AudioInputDeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputDeviceManager.swift; sourceTree = "<group>"; };
+		6D7DC9C563AC3BA4AB1F5587 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		7D803CB0537F21AAC1DBE780 /* BehaviorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehaviorService.swift; sourceTree = "<group>"; };
+		7D8100AFFD2C1A2203AE0606 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8F9CC9F1A2C20FCE5AEE6B33 /* iAgentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iAgentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		965084303528C7B66996B565 /* AgentControlCenterVoiceTimingChainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentControlCenterVoiceTimingChainTests.swift; sourceTree = "<group>"; };
+		9C4FF67A38D57B8913B517C4 /* AgentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentService.swift; sourceTree = "<group>"; };
+		9FF4F6CF181A9C01A89DFF7C /* iAgentApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iAgentApp.swift; sourceTree = "<group>"; };
+		A177E0E5A2532B610862396C /* iAgent.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iAgent.entitlements; sourceTree = "<group>"; };
+		A8DAB821459B3CC36FCBBB22 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
+		BAE7BC513902923A1421E3E1 /* AgentControlCenterPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentControlCenterPipelineTests.swift; sourceTree = "<group>"; };
+		CA795454F42F2D7F263501AB /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
+		D67405006938A648E5DD6DCC /* VoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceService.swift; sourceTree = "<group>"; };
+		D75AEB7E6C2C9B77061C6E6D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		DE357A10495D7B07D052738F /* AgentControlCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentControlCenter.swift; sourceTree = "<group>"; };
+		E2D4431A0762DE33520044F4 /* PlaybackServiceStateStreamTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackServiceStateStreamTests.swift; sourceTree = "<group>"; };
+		E6A5CC6755C60F50D58D29C6 /* iAgent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iAgent.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F317398AF2461F974EA6BA8F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		F4548E19C0193A78B3F3901D /* AgentServiceCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentServiceCoverageTests.swift; sourceTree = "<group>"; };
+		F5DD942A4BA268D7C69C94DD /* ASRAndTTSLocalIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASRAndTTSLocalIntegrationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		183E5BD62F83BB60006F3EC6 /* iAgent */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
+/* Begin PBXGroup section */
+		129CE7B177C5D019291875B3 /* iAgent */ = {
+			isa = PBXGroup;
+			children = (
+				DE357A10495D7B07D052738F /* AgentControlCenter.swift */,
+				9C4FF67A38D57B8913B517C4 /* AgentService.swift */,
+				18A53A012858A648F7371B4B /* ASRService.swift */,
+				7D8100AFFD2C1A2203AE0606 /* Assets.xcassets */,
+				63B84238C9C0236765ED5A07 /* AudioInputDeviceManager.swift */,
+				34DA243D4460DF23B59146B6 /* AudioProcessor.swift */,
+				7D803CB0537F21AAC1DBE780 /* BehaviorService.swift */,
+				CA795454F42F2D7F263501AB /* Configuration.swift */,
+				D75AEB7E6C2C9B77061C6E6D /* ContentView.swift */,
+				178268D435C3F518DDC12D6D /* ConversationMemory.swift */,
+				A177E0E5A2532B610862396C /* iAgent.entitlements */,
+				9FF4F6CF181A9C01A89DFF7C /* iAgentApp.swift */,
+				563F06B608E4D057FE24F0AB /* Logger.swift */,
+				F317398AF2461F974EA6BA8F /* main.swift */,
+				46C3E5D39A064C7FECCC3ED5 /* PlaybackService.swift */,
+				A8DAB821459B3CC36FCBBB22 /* TTSService.swift */,
+				D67405006938A648E5DD6DCC /* VoiceService.swift */,
+			);
 			path = iAgent;
 			sourceTree = "<group>";
 		};
-		A1B2C3D42F90000100ABCDEF /* iAgentTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
+		5EFF56A6FA9785B77FD9535E = {
+			isa = PBXGroup;
+			children = (
+				129CE7B177C5D019291875B3 /* iAgent */,
+				D906F1B2C99AA8F480C57A77 /* iAgentTests */,
+				DB8AF4B5D7CD36D0763DBB94 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D906F1B2C99AA8F480C57A77 /* iAgentTests */ = {
+			isa = PBXGroup;
+			children = (
+				03B6484A7F9BAECBE5EDD9DC /* AgentControlCenterCoverageTests.swift */,
+				BAE7BC513902923A1421E3E1 /* AgentControlCenterPipelineTests.swift */,
+				965084303528C7B66996B565 /* AgentControlCenterVoiceTimingChainTests.swift */,
+				F4548E19C0193A78B3F3901D /* AgentServiceCoverageTests.swift */,
+				0BA3EE6B9ED13215D6209E03 /* AgentServiceSessionIntegrationTests.swift */,
+				3ADE1811C4CBA379A3338548 /* AppDelegateAndViewCoverageTests.swift */,
+				3033DA3A79E2F1CB2A3F0932 /* ASRAndTTSErrorCoverageTests.swift */,
+				F5DD942A4BA268D7C69C94DD /* ASRAndTTSLocalIntegrationTests.swift */,
+				0019DCB844D317C458CC6DE3 /* BehaviorServiceCoverageTests.swift */,
+				2499F101139DEA7B3F45BFED /* ConfigurationTests.swift */,
+				1553B3EE953115AD898A72F0 /* CoreUtilitiesCoverageTests.swift */,
+				51D2AE2D7B755912CDAAE36C /* PlaybackServiceCoverageTests.swift */,
+				E2D4431A0762DE33520044F4 /* PlaybackServiceStateStreamTests.swift */,
+				6D7DC9C563AC3BA4AB1F5587 /* README.md */,
+				266034419E51E623D86E5F45 /* VoiceServiceCoverageTests.swift */,
+			);
 			path = iAgentTests;
 			sourceTree = "<group>";
 		};
-/* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		183E5BD12F83BB60006F3EC6 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-			);
-		};
-		183E5BDE2F83BB61006F3EC6 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-			);
-		};
-		183E5BE82F83BB61006F3EC6 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-			);
-		};
-/* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXGroup section */
-		183E5BCB2F83BB60006F3EC6 = {
+		DB8AF4B5D7CD36D0763DBB94 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				183E5BD62F83BB60006F3EC6 /* iAgent */,
-				A1B2C3D42F90000100ABCDEF /* iAgentTests */,
-				183E5BD52F83BB60006F3EC6 /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		183E5BD52F83BB60006F3EC6 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				183E5BD42F83BB60006F3EC6 /* iAgent.app */,
-				183E5BE12F83BB61006F3EC6 /* iAgentTests.xctest */,
-				183E5BEB2F83BB61006F3EC6 /* iAgentUITests.xctest */,
+				E6A5CC6755C60F50D58D29C6 /* iAgent.app */,
+				8F9CC9F1A2C20FCE5AEE6B33 /* iAgentTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,231 +155,227 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		183E5BD32F83BB60006F3EC6 /* iAgent */ = {
+		8F7B03E1659D55B9ABF3DD95 /* iAgent */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 183E5BF52F83BB61006F3EC6 /* Build configuration list for PBXNativeTarget "iAgent" */;
+			buildConfigurationList = 0970FEF3A52658991D528EDF /* Build configuration list for PBXNativeTarget "iAgent" */;
 			buildPhases = (
-				183E5BD02F83BB60006F3EC6 /* Sources */,
-				183E5BD12F83BB60006F3EC6 /* Frameworks */,
-				183E5BD22F83BB60006F3EC6 /* Resources */,
+				B3335997C17F6767FBE573E1 /* Sources */,
+				396711293A7256FF0B33592E /* Resources */,
 			);
 			buildRules = (
 			);
-			fileSystemSynchronizedGroups = (
-				183E5BD62F83BB60006F3EC6 /* iAgent */,
+			dependencies = (
 			);
 			name = iAgent;
+			packageProductDependencies = (
+			);
 			productName = iAgent;
-			productReference = 183E5BD42F83BB60006F3EC6 /* iAgent.app */;
+			productReference = E6A5CC6755C60F50D58D29C6 /* iAgent.app */;
 			productType = "com.apple.product-type.application";
 		};
-		183E5BE02F83BB61006F3EC6 /* iAgentTests */ = {
+		983505CA3FE9651CCAD3AF80 /* iAgentTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 183E5BF82F83BB61006F3EC6 /* Build configuration list for PBXNativeTarget "iAgentTests" */;
+			buildConfigurationList = BF6F7BDFF44E414DEB015C7C /* Build configuration list for PBXNativeTarget "iAgentTests" */;
 			buildPhases = (
-				183E5BDD2F83BB61006F3EC6 /* Sources */,
-				183E5BDE2F83BB61006F3EC6 /* Frameworks */,
-				183E5BDF2F83BB61006F3EC6 /* Resources */,
+				9CE57562AB706D188AAFEB81 /* Sources */,
+				DF2DAF98B156CDC4F96240EE /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				183E5BE32F83BB61006F3EC6 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				A1B2C3D42F90000100ABCDEF /* iAgentTests */,
+				D9D5D0F62F72984BB0C5FA28 /* PBXTargetDependency */,
 			);
 			name = iAgentTests;
+			packageProductDependencies = (
+			);
 			productName = iAgentTests;
-			productReference = 183E5BE12F83BB61006F3EC6 /* iAgentTests.xctest */;
+			productReference = 8F9CC9F1A2C20FCE5AEE6B33 /* iAgentTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		183E5BEA2F83BB61006F3EC6 /* iAgentUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 183E5BFB2F83BB61006F3EC6 /* Build configuration list for PBXNativeTarget "iAgentUITests" */;
-			buildPhases = (
-				183E5BE72F83BB61006F3EC6 /* Sources */,
-				183E5BE82F83BB61006F3EC6 /* Frameworks */,
-				183E5BE92F83BB61006F3EC6 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				183E5BED2F83BB61006F3EC6 /* PBXTargetDependency */,
-			);
-			name = iAgentUITests;
-			productName = iAgentUITests;
-			productReference = 183E5BEB2F83BB61006F3EC6 /* iAgentUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		183E5BCC2F83BB60006F3EC6 /* Project object */ = {
+		BC4464C898A70EA05710E7FB /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2640;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					183E5BD32F83BB60006F3EC6 = {
-						CreatedOnToolsVersion = 26.3;
+					8F7B03E1659D55B9ABF3DD95 = {
+						DevelopmentTeam = K9UF7A2D7Y;
+						ProvisioningStyle = Automatic;
 					};
-					183E5BE02F83BB61006F3EC6 = {
-						CreatedOnToolsVersion = 26.3;
-						TestTargetID = 183E5BD32F83BB60006F3EC6;
-					};
-					183E5BEA2F83BB61006F3EC6 = {
-						CreatedOnToolsVersion = 26.3;
-						TestTargetID = 183E5BD32F83BB60006F3EC6;
+					983505CA3FE9651CCAD3AF80 = {
+						DevelopmentTeam = K9UF7A2D7Y;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 183E5BCF2F83BB60006F3EC6 /* Build configuration list for PBXProject "iAgent" */;
+			buildConfigurationList = 504949CF9931390429CEB5FA /* Build configuration list for PBXProject "iAgent" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				en,
 			);
-			mainGroup = 183E5BCB2F83BB60006F3EC6;
+			mainGroup = 5EFF56A6FA9785B77FD9535E;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 100;
-			productRefGroup = 183E5BD52F83BB60006F3EC6 /* Products */;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = DB8AF4B5D7CD36D0763DBB94 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				183E5BD32F83BB60006F3EC6 /* iAgent */,
-				183E5BE02F83BB61006F3EC6 /* iAgentTests */,
-				183E5BEA2F83BB61006F3EC6 /* iAgentUITests */,
+				8F7B03E1659D55B9ABF3DD95 /* iAgent */,
+				983505CA3FE9651CCAD3AF80 /* iAgentTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		183E5BD22F83BB60006F3EC6 /* Resources */ = {
+		396711293A7256FF0B33592E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
+				F7FE0BD309C6A559B8EFE6D2 /* Assets.xcassets in Resources */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
-		183E5BDF2F83BB61006F3EC6 /* Resources */ = {
+		DF2DAF98B156CDC4F96240EE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
+				D0198C73017F5959AA0DF934 /* README.md in Resources */,
 			);
-		};
-		183E5BE92F83BB61006F3EC6 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			files = (
-			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		183E5BD02F83BB60006F3EC6 /* Sources */ = {
+		9CE57562AB706D188AAFEB81 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
+				03C7291D3928C3B9CC1E379D /* ASRAndTTSErrorCoverageTests.swift in Sources */,
+				CAA20336B435C88A4ADD5C57 /* ASRAndTTSLocalIntegrationTests.swift in Sources */,
+				80321D0E29FBEAE5988E74F3 /* AgentControlCenterCoverageTests.swift in Sources */,
+				3FAA73D4A5ABB11577D1FA20 /* AgentControlCenterPipelineTests.swift in Sources */,
+				487707F7C95ADA1E0F327602 /* AgentControlCenterVoiceTimingChainTests.swift in Sources */,
+				03350426268D5E6FAAF1FB62 /* AgentServiceCoverageTests.swift in Sources */,
+				052BAFF007CF44AC2B7FEA7F /* AgentServiceSessionIntegrationTests.swift in Sources */,
+				F773610A8DFDA9A1060757E8 /* AppDelegateAndViewCoverageTests.swift in Sources */,
+				DBF624D7EE8684E7B8267F6F /* BehaviorServiceCoverageTests.swift in Sources */,
+				F5328A5E7CC6421852090325 /* ConfigurationTests.swift in Sources */,
+				9CB3F09A2A52B795B238B042 /* CoreUtilitiesCoverageTests.swift in Sources */,
+				1673CB05992A6D8C44D01E70 /* PlaybackServiceCoverageTests.swift in Sources */,
+				7C263A91F24134BA865B24D2 /* PlaybackServiceStateStreamTests.swift in Sources */,
+				1B8891C550CBAFD37FA56230 /* VoiceServiceCoverageTests.swift in Sources */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
-		183E5BDD2F83BB61006F3EC6 /* Sources */ = {
+		B3335997C17F6767FBE573E1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
+				B9313BA90BEEED74E2B26B7C /* ASRService.swift in Sources */,
+				C16B5AC7AF002881712F595B /* AgentControlCenter.swift in Sources */,
+				C2891558210218A73FD54EAE /* AgentService.swift in Sources */,
+				ACD853881D9F2F618E26C6CC /* AudioInputDeviceManager.swift in Sources */,
+				7B77AC1A3E21F6A5E2BF2E52 /* AudioProcessor.swift in Sources */,
+				E50E1B371647EF41235153A8 /* BehaviorService.swift in Sources */,
+				7E750EA87218E9FB98AAFBC3 /* Configuration.swift in Sources */,
+				BE0CA522A99A1C8ED3190DA8 /* ContentView.swift in Sources */,
+				E4EE99F73A7CF9750BB7AE22 /* ConversationMemory.swift in Sources */,
+				CB167230CD99D36170A84C80 /* Logger.swift in Sources */,
+				637F95E013EBB701B9D00D39 /* PlaybackService.swift in Sources */,
+				99871D73DFB39CE90FEA991B /* TTSService.swift in Sources */,
+				8259459940DFC11BFA7ABD69 /* VoiceService.swift in Sources */,
+				087D0B22F21C505AF41E934E /* iAgentApp.swift in Sources */,
+				03B38D6EB3F55E96B97B388A /* main.swift in Sources */,
 			);
-		};
-		183E5BE72F83BB61006F3EC6 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			files = (
-			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		183E5BE32F83BB61006F3EC6 /* PBXTargetDependency */ = {
+		D9D5D0F62F72984BB0C5FA28 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 183E5BD32F83BB60006F3EC6 /* iAgent */;
-			targetProxy = 183E5BE22F83BB61006F3EC6 /* PBXContainerItemProxy */;
-		};
-		183E5BED2F83BB61006F3EC6 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 183E5BD32F83BB60006F3EC6 /* iAgent */;
-			targetProxy = 183E5BEC2F83BB61006F3EC6 /* PBXContainerItemProxy */;
+			target = 8F7B03E1659D55B9ABF3DD95 /* iAgent */;
+			targetProxy = 44BF3FD94E99DCC86438AA7D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		183E5BF32F83BB61006F3EC6 /* Debug configuration for PBXProject "iAgent" */ = {
+		16067F7EECB89828A555DE23 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = K9UF7A2D7Y;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iAgent/iAgent.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "iAgent 需要访问麦克风进行语音识别";
+				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
+					"@executable_path/../Frameworks",
 				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
+				MARKETING_VERSION = 1.0.28;
+				PRODUCT_BUNDLE_IDENTIFIER = David.iAgent;
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 			};
 			name = Debug;
 		};
-		183E5BF42F83BB61006F3EC6 /* Release configuration for PBXProject "iAgent" */ = {
+		17372DDA38B7BE9485BBEC5A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.28;
+				PRODUCT_BUNDLE_IDENTIFIER = David.iAgentTests;
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iAgent.app/Contents/MacOS/iAgent";
+			};
+			name = Release;
+		};
+		32EEE6FA982FCF0D5BDDC644 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.28;
+				PRODUCT_BUNDLE_IDENTIFIER = David.iAgentTests;
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iAgent.app/Contents/MacOS/iAgent";
+			};
+			name = Debug;
+		};
+		A2709E3DBE1F5502299D34DA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -333,14 +401,16 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = K9UF7A2D7Y;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -348,210 +418,139 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
-		183E5BF62F83BB61006F3EC6 /* Debug configuration for PBXNativeTarget "iAgent" */ = {
+		AB38DD067B46C788CA5C8515 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iAgent/iAgent.entitlements;
-				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 20260420134445;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = K9UF7A2D7Y;
-				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "iAgent 需要访问麦克风进行语音识别";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0.26;
+				MARKETING_VERSION = 1.0.28;
 				PRODUCT_BUNDLE_IDENTIFIER = David.iAgent;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SDKROOT = macosx;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
 			};
-			name = Debug;
+			name = Release;
 		};
-		183E5BF72F83BB61006F3EC6 /* Release configuration for PBXNativeTarget "iAgent" */ = {
+		B022CEE25FD166E4F7A33392 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = iAgent/iAgent.entitlements;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 20260420134445;
-				DEAD_CODE_STRIPPING = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = K9UF7A2D7Y;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "iAgent 需要访问麦克风进行语音识别";
-				LD_RUNPATH_SEARCH_PATHS = (
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"DEBUG=1",
 				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0.26;
-				PRODUCT_BUNDLE_IDENTIFIER = David.iAgent;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		183E5BF92F83BB61006F3EC6 /* Debug configuration for PBXNativeTarget "iAgentTests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260420134445;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = K9UF7A2D7Y;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0.26;
-				PRODUCT_BUNDLE_IDENTIFIER = David.iAgentTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iAgent.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iAgent";
 			};
 			name = Debug;
-		};
-		183E5BFA2F83BB61006F3EC6 /* Release configuration for PBXNativeTarget "iAgentTests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260420134445;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = K9UF7A2D7Y;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0.26;
-				PRODUCT_BUNDLE_IDENTIFIER = David.iAgentTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iAgent.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iAgent";
-			};
-			name = Release;
-		};
-		183E5BFC2F83BB61006F3EC6 /* Debug configuration for PBXNativeTarget "iAgentUITests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260420134445;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = K9UF7A2D7Y;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0.26;
-				PRODUCT_BUNDLE_IDENTIFIER = David.iAgentUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = iAgent;
-			};
-			name = Debug;
-		};
-		183E5BFD2F83BB61006F3EC6 /* Release configuration for PBXNativeTarget "iAgentUITests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260420134445;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = K9UF7A2D7Y;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0.26;
-				PRODUCT_BUNDLE_IDENTIFIER = David.iAgentUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = iAgent;
-			};
-			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		183E5BCF2F83BB60006F3EC6 /* Build configuration list for PBXProject "iAgent" */ = {
+		0970FEF3A52658991D528EDF /* Build configuration list for PBXNativeTarget "iAgent" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				183E5BF32F83BB61006F3EC6 /* Debug configuration for PBXProject "iAgent" */,
-				183E5BF42F83BB61006F3EC6 /* Release configuration for PBXProject "iAgent" */,
+				16067F7EECB89828A555DE23 /* Debug */,
+				AB38DD067B46C788CA5C8515 /* Release */,
 			);
-			defaultConfigurationName = Release;
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
-		183E5BF52F83BB61006F3EC6 /* Build configuration list for PBXNativeTarget "iAgent" */ = {
+		504949CF9931390429CEB5FA /* Build configuration list for PBXProject "iAgent" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				183E5BF62F83BB61006F3EC6 /* Debug configuration for PBXNativeTarget "iAgent" */,
-				183E5BF72F83BB61006F3EC6 /* Release configuration for PBXNativeTarget "iAgent" */,
+				B022CEE25FD166E4F7A33392 /* Debug */,
+				A2709E3DBE1F5502299D34DA /* Release */,
 			);
-			defaultConfigurationName = Release;
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
-		183E5BF82F83BB61006F3EC6 /* Build configuration list for PBXNativeTarget "iAgentTests" */ = {
+		BF6F7BDFF44E414DEB015C7C /* Build configuration list for PBXNativeTarget "iAgentTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				183E5BF92F83BB61006F3EC6 /* Debug configuration for PBXNativeTarget "iAgentTests" */,
-				183E5BFA2F83BB61006F3EC6 /* Release configuration for PBXNativeTarget "iAgentTests" */,
+				32EEE6FA982FCF0D5BDDC644 /* Debug */,
+				17372DDA38B7BE9485BBEC5A /* Release */,
 			);
-			defaultConfigurationName = Release;
-		};
-		183E5BFB2F83BB61006F3EC6 /* Build configuration list for PBXNativeTarget "iAgentUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				183E5BFC2F83BB61006F3EC6 /* Debug configuration for PBXNativeTarget "iAgentUITests" */,
-				183E5BFD2F83BB61006F3EC6 /* Release configuration for PBXNativeTarget "iAgentUITests" */,
-			);
-			defaultConfigurationName = Release;
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 183E5BCC2F83BB60006F3EC6 /* Project object */;
+	rootObject = BC4464C898A70EA05710E7FB /* Project object */;
 }
