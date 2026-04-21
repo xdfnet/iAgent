@@ -185,7 +185,7 @@ private final class VoiceCaptureRecoveryController {
         guard scheduledRecoveryTask == nil else { return }
 
         statusUpdater("\(reason)，\(Int(recoveryDelaySeconds))秒后自动重试")
-        print("[VoiceCaptureRecoveryController] \(reason)，计划自动恢复采集")
+        Logger.log("[VoiceCaptureRecoveryController] \(reason)，计划自动恢复采集", category: .control)
 
         scheduledRecoveryTask = Task { [recoveryDelaySeconds] in
             do {
@@ -364,7 +364,7 @@ final class AgentControlCenter {
         health = .starting
         statusMessage = "服务启动中"
         updateRuntimeDescription()
-        print("[AgentControlCenter] 开始启动服务...")
+        Logger.log("开始启动服务...", category: .control)
 
         do {
             _ = Configuration.reload()
@@ -373,7 +373,7 @@ final class AgentControlCenter {
             try applyConfiguredAudioDevicePreferencesIfNeeded()
             await behaviorService.stopMonitoring(clearContext: false)
             await behaviorService.startMonitoring()
-            print("[AgentControlCenter] 依赖验证通过")
+            Logger.log("依赖验证通过", category: .control)
 
             // 先订阅状态流，避免错过 startListening 触发的首个 listening 事件
             startStateObserver()
@@ -383,19 +383,19 @@ final class AgentControlCenter {
 
             // 启动语音监听
             try await voiceService.startListening()
-            print("[AgentControlCenter] 语音采集任务已提交，等待设备就绪")
+            Logger.log("语音采集任务已提交，等待设备就绪", category: .control)
 
             // 启动片段处理任务
             startSegmentProcessing()
 
-            print("[AgentControlCenter] 服务启动完成，等待首个监听状态")
+            Logger.log("服务启动完成，等待首个监听状态", category: .control)
         } catch {
             behaviorObserverTask?.cancel()
             behaviorObserverTask = nil
             await behaviorService.stopMonitoring(clearContext: false)
             health = .unreachable
             statusMessage = "启动失败: \(error.localizedDescription)"
-            print("[AgentControlCenter] 启动失败: \(error)")
+            Logger.log("启动失败: \(error)", category: .control)
         }
 
         lastRefresh = Date()
@@ -465,7 +465,7 @@ final class AgentControlCenter {
 
         statusMessage = "麦克风已切换: \(target.name)"
         scheduleDeviceSwitchStatusReset()
-        print("[AgentControlCenter] 麦克风已切换: \(target.name), uid=\(uid)")
+        Logger.log("麦克风已切换: \(target.name), uid=\(uid)", category: .control)
     }
 
     func selectOutputDevice(uid: String) async throws {
@@ -483,7 +483,7 @@ final class AgentControlCenter {
 
         statusMessage = "扬声器已切换: \(target.name)"
         scheduleDeviceSwitchStatusReset()
-        print("[AgentControlCenter] 扬声器已切换: \(target.name), uid=\(uid)")
+        Logger.log("扬声器已切换: \(target.name), uid=\(uid)", category: .control)
     }
 
     func stopPlayback() {
@@ -645,7 +645,7 @@ final class AgentControlCenter {
                     self.voiceRecoveryController.cancel()
                     self.health = .unreachable
                     self.statusMessage = "采集异常: \(message)"
-                    print("[AgentControlCenter] 采集启动失败: \(message)")
+                    Logger.log("采集启动失败: \(message)", category: .control)
                     await self.voiceService.stopListening()
                     continue
                 }
@@ -684,7 +684,7 @@ final class AgentControlCenter {
     }
 
     private func handleVoiceState(_ state: VoiceService.State) {
-        print("[AgentControlCenter] 收到语音状态: \(state)")
+        Logger.log("收到语音状态: \(state)", category: .control)
         guard health != .unreachable else { return }
         if health == .starting, state != .idle {
             health = .healthy
@@ -693,7 +693,7 @@ final class AgentControlCenter {
            state == .idle
         {
             let reason = isRestartingVoiceCaptureAfterPlayback ? "播报后" : "处理完成后"
-            print("[AgentControlCenter] 忽略\(reason)重启采集产生的 idle 状态")
+            Logger.log("忽略\(reason)重启采集产生的 idle 状态", category: .control)
             return
         }
         let shouldPublishStatus = shouldPublishCaptureStatus(for: state)
@@ -713,18 +713,18 @@ final class AgentControlCenter {
 
         if isRestartingVoiceCaptureAfterTurnProcessing, state == .listening {
             isRestartingVoiceCaptureAfterTurnProcessing = false
-            print("[AgentControlCenter] 处理完成后采集已恢复")
+            Logger.log("处理完成后采集已恢复", category: .control)
         }
         if isRestartingVoiceCaptureAfterPlayback, state == .listening {
             isRestartingVoiceCaptureAfterPlayback = false
-            print("[AgentControlCenter] 播报后采集已恢复")
+            Logger.log("播报后采集已恢复", category: .control)
         }
     }
 
     private func attemptVoiceRecovery(reason: String) async {
         guard health == .healthy else { return }
 
-        print("[AgentControlCenter] 开始恢复采集，原因: \(reason)")
+        Logger.log("开始恢复采集，原因: \(reason)", category: .control)
 #if DEBUG
         voiceRecoveryAttemptHookForTesting?(reason)
 #endif
@@ -748,7 +748,7 @@ final class AgentControlCenter {
             }
         )
         if statusMessage == "VAD 监听中" {
-            print("[AgentControlCenter] 采集恢复成功")
+            Logger.log("采集恢复成功", category: .control)
         }
     }
 
@@ -764,7 +764,7 @@ final class AgentControlCenter {
     private func processVoiceSegment(_ segment: VoiceService.VoiceSegment) async {
         let segmentStart = Date()
         let audioData = segment.audioData
-        print("[AgentControlCenter] 收到语音片段，bytes=\(audioData.count)")
+        Logger.log("收到语音片段，bytes=\(audioData.count)", category: .control)
         isProcessingVoiceTurn = true
         await voiceService.setSpeechDetectionSuspended(true)
         var turnDidThrow = false
@@ -791,18 +791,19 @@ final class AgentControlCenter {
                         await self?.attemptVoiceRecovery(reason: reason)
                     }
                 )
-                print("[AgentControlCenter] 跳过ASR：采集设备未就绪")
+                Logger.log("跳过ASR：采集设备未就绪", category: .control)
                 return
             }
-            print("[AgentControlCenter] 设备识别完成，当前采集设备: \(inputDevice)")
+            Logger.log("设备识别完成，当前采集设备: \(inputDevice)", category: .control)
 
             statusMessage = "ASR 转写中"
             let asrStart = Date()
             let transcript = try await transcribeAudioData(audioData)
             let asrElapsed = Date().timeIntervalSince(asrStart)
-            print(
-                "[AgentControlCenter] ASR 完成，耗时=\(String(format: "%.2f", asrElapsed))s, " +
-                "text_len=\(transcript.count), text=\(formatLogText(transcript))"
+            Logger.log(
+                "ASR 完成，耗时=\(String(format: "%.2f", asrElapsed))s, " +
+                "text_len=\(transcript.count), text=\(formatLogText(transcript))",
+                category: .control
             )
 
             try await processTranscript(
@@ -810,7 +811,7 @@ final class AgentControlCenter {
                 shouldAutoSpeak: autoSpeak
             )
             let totalElapsed = Date().timeIntervalSince(segmentStart)
-            print("[AgentControlCenter] 语音片段处理完成，总耗时=\(String(format: "%.2f", totalElapsed))s")
+            Logger.log("语音片段处理完成，总耗时=\(String(format: "%.2f", totalElapsed))s", category: .control)
         } catch {
             turnDidThrow = true
             if !statusMessage.hasPrefix("ASR 转写失败")
@@ -819,7 +820,7 @@ final class AgentControlCenter {
                 && !statusMessage.hasPrefix("TTS 播放失败") {
                 statusMessage = "处理失败: \(error.localizedDescription)"
             }
-            print("[AgentControlCenter] 语音片段处理失败: \(error)")
+            Logger.log("语音片段处理失败: \(error)", category: .control)
         }
     }
 
@@ -838,9 +839,10 @@ final class AgentControlCenter {
             throw error
         }
         let agentElapsed = Date().timeIntervalSince(agentStart)
-        print(
-            "[AgentControlCenter] Agent 完成，耗时=\(String(format: "%.2f", agentElapsed))s, " +
-            "reply_len=\(response.replyText.count), reply=\(formatLogText(response.replyText))"
+        Logger.log(
+            "Agent 完成，耗时=\(String(format: "%.2f", agentElapsed))s, " +
+            "reply_len=\(response.replyText.count), reply=\(formatLogText(response.replyText))",
+            category: .control
         )
 
         latestConversation = AgentConversation(user: transcript, assistant: response.replyText)
@@ -901,23 +903,23 @@ final class AgentControlCenter {
             throw error
         }
 
-        print("[AgentControlCenter] 行为触发播报完成，scene=\(context.scene.rawValue), source=\(context.source)")
+        Logger.log("行为触发播报完成，scene=\(context.scene.rawValue), source=\(context.source)", category: .control)
     }
 
     private func speakTextInternal(_ text: String) async throws {
         statusMessage = "TTS 播放中"
-        print("[AgentControlCenter] 开始播报，text=\(formatLogText(text))")
+        Logger.log("开始播报，text=\(formatLogText(text))", category: .control)
 
         let ttsStart = Date()
         let audioData = try await synthesizeSpeech(text)
         let ttsElapsed = Date().timeIntervalSince(ttsStart)
-        print("[AgentControlCenter] TTS 完成，耗时=\(String(format: "%.2f", ttsElapsed))s, bytes=\(audioData.count)")
+        Logger.log("TTS 完成，耗时=\(String(format: "%.2f", ttsElapsed))s, bytes=\(audioData.count)", category: .control)
 
         let playStart = Date()
         try await playAudioData(audioData, interrupt: true)
         try await playbackService.waitUntilFinished()
         let playElapsed = Date().timeIntervalSince(playStart)
-        print("[AgentControlCenter] Playback 请求完成，耗时=\(String(format: "%.2f", playElapsed))s")
+        Logger.log("Playback 请求完成，耗时=\(String(format: "%.2f", playElapsed))s", category: .control)
 
         let stillPlaying = await playbackService.isPlaying
         if !stillPlaying {

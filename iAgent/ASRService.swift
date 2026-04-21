@@ -271,7 +271,7 @@ actor ASRService {
 
         if let body = String(data: data, encoding: .utf8) {
             let snippet = String(body.prefix(300))
-            print("[ASRService] no-result payload snippet: \(snippet)")
+            Logger.log("no-result payload snippet: \(snippet)", category: .asr)
         }
 
         throw ASRError.noResult

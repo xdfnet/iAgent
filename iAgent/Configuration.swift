@@ -269,7 +269,7 @@ private struct ConfigurationLoader {
                 config.apply(fileOverride: override)
             }
         } catch {
-            print("[Configuration] \(ConfigurationError.invalidConfigFile(error.localizedDescription).localizedDescription)")
+            Logger.log("配置文件解析失败: \(ConfigurationError.invalidConfigFile(error.localizedDescription).localizedDescription)", category: .config)
         }
 
         config.apply(environment: ProcessInfo.processInfo.environment)
@@ -299,7 +299,7 @@ private struct ConfigurationLoader {
             do {
                 try FileManager.default.createDirectory(atPath: directoryPath, withIntermediateDirectories: true)
             } catch {
-                print("[Configuration] 创建配置目录失败: \(error.localizedDescription)")
+                Logger.log("创建配置目录失败: \(error.localizedDescription)", category: .config)
                 return
             }
         }
@@ -325,69 +325,13 @@ private struct ConfigurationLoader {
             do {
                 try FileManager.default.createDirectory(atPath: directoryPath, withIntermediateDirectories: true)
             } catch {
-                print("[Configuration] 创建配置目录失败: \(error.localizedDescription)")
+                Logger.log("创建配置目录失败: \(error.localizedDescription)", category: .config)
                 return
             }
         }
 
         do {
-            let object: [String: Any] = [
-                "speechToText": [
-                    "apiKey": config.speechToText.apiKey,
-                    "flashUrl": config.speechToText.flashUrl,
-                    "resourceId": config.speechToText.resourceId
-                ],
-                "textToSpeech": [
-                    "appId": config.textToSpeech.appId,
-                    "accessToken": config.textToSpeech.accessToken,
-                    "endpoint": config.textToSpeech.endpoint,
-                    "resourceId": config.textToSpeech.resourceId,
-                    "voiceType": config.textToSpeech.voiceType,
-                    "volume": config.textToSpeech.volume
-                ],
-                "agent": [
-                    "workdir": config.agent.workdir,
-                    "timeoutSeconds": config.agent.timeoutSeconds
-                ],
-                "behavior": [
-                    "enabled": config.behavior.enabled,
-                    "routerSSHHost": config.behavior.routerSSHHost,
-                    "monitoredPhoneMAC": config.behavior.monitoredPhoneMAC,
-                    "monitoredWiFiInterfaces": config.behavior.monitoredWiFiInterfaces,
-                    "pollIntervalSeconds": config.behavior.pollIntervalSeconds,
-                    "contextTTLSeconds": config.behavior.contextTTLSeconds,
-                    "cooldownSeconds": config.behavior.cooldownSeconds,
-                    "requiredOnlineConfirmations": config.behavior.requiredOnlineConfirmations,
-                    "requiredOfflineConfirmations": config.behavior.requiredOfflineConfirmations
-                ],
-                "client": [
-                    "inputDeviceIndex": config.client.inputDeviceIndex,
-                    "outputDeviceUID": config.client.outputDeviceUID,
-                    "audio": [
-                        "sampleRate": config.client.audio.sampleRate,
-                        "channels": config.client.audio.channels,
-                        "sampleWidth": config.client.audio.sampleWidth
-                    ],
-                    "continuous": [
-                        "interruptOnSpeech": config.client.continuous.interruptOnSpeech,
-                        "frameMs": config.client.continuous.frameMs,
-                        "startThreshold": config.client.continuous.startThreshold,
-                        "playingStartThreshold": config.client.continuous.playingStartThreshold,
-                        "endThreshold": config.client.continuous.endThreshold,
-                        "startFrames": config.client.continuous.startFrames,
-                        "playingStartFrames": config.client.continuous.playingStartFrames,
-                        "endSilenceFrames": config.client.continuous.endSilenceFrames,
-                        "prerollFrames": config.client.continuous.prerollFrames,
-                        "minSpeechFrames": config.client.continuous.minSpeechFrames,
-                        "postInterruptCooldownSeconds": config.client.continuous.postInterruptCooldownSeconds
-                    ]
-                ]
-            ]
-
-            let data = try JSONSerialization.data(
-                withJSONObject: object,
-                options: [.prettyPrinted, .sortedKeys]
-            )
+            let data = try JSONEncoder().encode(config)
             try data.write(to: fileURL, options: .atomic)
         } catch {
             print("[Configuration] 保存配置文件失败: \(error.localizedDescription)")

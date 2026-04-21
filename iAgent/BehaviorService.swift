@@ -73,7 +73,7 @@ actor BehaviorService {
 
     private let config: Config
     private let contextEventStreamStorage: AsyncStream<Context>
-    private let contextEventContinuation: AsyncStream<Context>.Continuation
+    private var contextEventContinuation: AsyncStream<Context>.Continuation?
     private var monitoringTask: Task<Void, Never>?
     private var activeContext: Context?
     private var lastKnownPhonePresence: Bool?
@@ -90,7 +90,7 @@ actor BehaviorService {
     init(config: Config = .default) {
         var continuation: AsyncStream<Context>.Continuation?
         self.contextEventStreamStorage = AsyncStream { continuation = $0 }
-        self.contextEventContinuation = continuation!
+        self.contextEventContinuation = continuation
         self.config = config
     }
 
@@ -242,8 +242,8 @@ actor BehaviorService {
         lastDecisionSummary = "已生成 arrived_home 行为上下文"
 
         recordEvent("触发 arrived_home，来源 \(source)")
-        contextEventContinuation.yield(activeContext!)
-        print("[BehaviorService] detected arrived_home, source=\(source)")
+        contextEventContinuation?.yield(activeContext!)
+        Logger.log("detected arrived_home, source=\(source)", category: .behavior)
     }
 
     private func clearExpiredContextIfNeeded(now: Date = Date()) {

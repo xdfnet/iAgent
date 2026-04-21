@@ -212,12 +212,13 @@ actor AgentService {
                 }
             }
 
-            process.terminationHandler = { process in
+            process.terminationHandler = { [stdoutHandle, stderrHandle] process in
                 timeoutTask.cancel()
                 stdoutHandle.readabilityHandler = nil
                 stderrHandle.readabilityHandler = nil
                 let (output, errorOutput) = drainBufferedOutput()
-                cleanupHandles()
+                try? stdoutHandle.close()
+                try? stderrHandle.close()
 
                 guard gate.claim() else { return }
 

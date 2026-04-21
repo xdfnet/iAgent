@@ -370,9 +370,9 @@ actor VoiceService {
 
     private func runNativeCaptureLoop(sessionID: Int) async {
         let deviceID = config.inputDeviceID
-        print("[VoiceService] 开始原生音频采集...")
-        print("[VoiceService] 输入设备: \(deviceID)")
-        print("[VoiceService] 采样率: \(config.sampleRate)")
+        Logger.log("开始原生音频采集...", category: .voice)
+        Logger.log("输入设备: \(deviceID)", category: .voice)
+        Logger.log("采样率: \(config.sampleRate)", category: .voice)
 
         let session = NativeAudioCaptureSession(config: config)
         nativeCaptureSession = session
@@ -382,13 +382,13 @@ actor VoiceService {
             frameStream = try session.start()
         } catch {
             let message = error.localizedDescription
-            print("[VoiceService] \(message)")
+            Logger.log(message, category: .voice, level: .error)
             reportError(message)
             finishCaptureSessionIfCurrent(sessionID)
             return
         }
 
-        print("[VoiceService] 原生音频采集已启动")
+        Logger.log("原生音频采集已启动", category: .voice)
         stateContinuation?.yield(.listening)
 
         await captureOnNativeStream(frameStream, deviceID: deviceID, sessionID: sessionID)
@@ -429,14 +429,14 @@ actor VoiceService {
             do {
                 guard let nextFrame = try await iterator.next(), nextFrame.count == config.frameBytes else {
                     let message = NativeCaptureError.streamClosed.localizedDescription
-                    print("[VoiceService] \(message)")
+                    Logger.log(message, category: .voice, level: .error)
                     reportError(message)
                     break
                 }
                 frameData = nextFrame
             } catch {
                 let message = error.localizedDescription
-                print("[VoiceService] \(message)")
+                Logger.log(message, category: .voice, level: .error)
                 reportError(message)
                 break
             }
@@ -447,7 +447,7 @@ actor VoiceService {
 
             if segmentIndex % 100 == 0 && silenceFrames == 0 {
                 let debugThreshold = playing ? adaptivePlayingStartThreshold : adaptiveStartThreshold
-                print("[VoiceService] RMS level: \(level), threshold: \(debugThreshold), device: \(deviceID)")
+                Logger.log("RMS level: \(level), threshold: \(debugThreshold), device: \(deviceID)", category: .voice)
             }
 
             if !inSpeech {
@@ -481,7 +481,7 @@ actor VoiceService {
                                 "end \(config.endThreshold)->\(adaptiveEndThreshold), " +
                                 "avgRMS=\(adaptiveWindowAverageLevel), maxRMS=\(adaptiveWindowMaxLevel)"
                             reportDiagnostic(tuneMessage)
-                            print("[VoiceService] \(tuneMessage)")
+                            Logger.log(tuneMessage, category: .voice)
                         }
                     }
                     adaptiveWindowFrames = 0
@@ -498,7 +498,7 @@ actor VoiceService {
                 if zeroLevelFrames >= zeroRMSFallbackFrameThreshold {
                     let message = "持续检测到零能量音频(设备 \(deviceID))，可能输入源异常"
                     reportError(message)
-                    print("[VoiceService] \(message)")
+                    Logger.log(message, category: .voice, level: .error)
                     break
                 }
             } else {
@@ -537,7 +537,7 @@ actor VoiceService {
                     hotFrames = 0
                     segmentPeakLevel = level
                     segmentThreshold = threshold
-                    print("[VoiceService] 🔊 检测到语音！hotFrames: \(hotFrames), required: \(requiredFrames)")
+                    Logger.log("检测到语音！hotFrames: \(hotFrames), required: \(requiredFrames)", category: .voice)
                     stateContinuation?.yield(.speaking)
                 }
             } else {
@@ -564,7 +564,7 @@ actor VoiceService {
                 if reachedNaturalEnd || reachedForcedEnd {
                     segmentIndex += 1
                     let endReason = reachedForcedEnd ? "forced-timeout" : "silence"
-                    print("[VoiceService] 🎙️ 语音片段结束，共 \(speechFrames.count) 帧，reason=\(endReason)")
+                    Logger.log("语音片段结束，共 \(speechFrames.count) 帧，reason=\(endReason)", category: .voice)
                     speechDetectionSuspended = true
                     awaitingTurnCompletion = true
                     pendingListeningResume = true
@@ -576,9 +576,10 @@ actor VoiceService {
                         audioData: audioData,
                         capturedAt: Date()
                     )
-                    print(
-                        "[VoiceService] segment[\(segmentIndex)] duration=\(String(format: "%.2f", segmentDurationSeconds))s " +
-                        "peakRMS=\(segmentPeakLevel) startThreshold=\(segmentThreshold) endThreshold=\(effectiveEndThreshold)"
+                    Logger.log(
+                        "segment[\(segmentIndex)] duration=\(String(format: "%.2f", segmentDurationSeconds))s " +
+                        "peakRMS=\(segmentPeakLevel) startThreshold=\(segmentThreshold) endThreshold=\(effectiveEndThreshold)",
+                        category: .voice
                     )
 
                     segmentContinuation?.yield(segment)

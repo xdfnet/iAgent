@@ -17,26 +17,19 @@ struct AudioProcessor {
     nonisolated static func calculateRMS(frame: Data) -> Int {
         guard !frame.isEmpty else { return 0 }
 
-        let samples: [Int16] = frame.withUnsafeBytes { buffer in
-            guard buffer.baseAddress != nil else { return [] }
-            let int16Buffer = buffer.bindMemory(to: Int16.self)
-            return Array(int16Buffer)
-        }
-
-        guard !samples.isEmpty else { return 0 }
-
-        // 计算平方和
         var sumOfSquares: Float = 0
-        for sample in samples {
-            let floatSample = Float(sample)
-            sumOfSquares += floatSample * floatSample
+        let count = frame.count / MemoryLayout<Int16>.size
+        frame.withUnsafeBytes { buffer in
+            guard let base = buffer.baseAddress else { return }
+            for i in 0..<count {
+                let sample = base.loadUnaligned(fromByteOffset: i * 2, as: Int16.self)
+                let floatSample = Float(sample)
+                sumOfSquares += floatSample * floatSample
+            }
         }
 
-        // 计算均值
-        let mean = sumOfSquares / Float(samples.count)
-
-        // 返回平方根
-        return Int(sqrt(mean))
+        guard count > 0 else { return 0 }
+        return Int(sqrt(sumOfSquares / Float(count)))
     }
 
     /// 将多个音频帧合并为一个 Data

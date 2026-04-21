@@ -224,8 +224,12 @@ actor TTSService {
                 return true
             }
 
-            if rawLine.hasPrefix("data:") || line.hasPrefix("data:") {
-                let dataLine = rawLine.hasPrefix("data:") ? rawLine : line
+            if line.hasPrefix("data:") {
+                let dataLine = line
+                guard dataLine.count > 5 else {
+                    // data: 前缀后内容太短，跳过
+                    return true
+                }
                 let start = dataLine.index(dataLine.startIndex, offsetBy: 5)
                 var value = String(dataLine[start...])
                 if value.first == " " {
@@ -286,7 +290,7 @@ actor TTSService {
         }
 
         if parseErrorCount > 0 {
-            print("[TTSService] 共跳过 \(parseErrorCount) 个无法解析的流事件")
+            Logger.log("共跳过 \(parseErrorCount) 个无法解析的流事件", category: .tts)
         }
 
         var mergedAudio = Data()
@@ -311,7 +315,7 @@ actor TTSService {
         guard let jsonData = trimmed.data(using: .utf8) else {
             parseErrorCount += 1
             if parseErrorCount <= 5 {
-                print("[TTSService] 非 UTF8 事件，已忽略")
+                Logger.log("非 UTF8 事件，已忽略", category: .tts)
             }
             return true
         }
@@ -323,7 +327,7 @@ actor TTSService {
             parseErrorCount += 1
             if parseErrorCount <= 5 {
                 let snippet = String(trimmed.prefix(180))
-                print("[TTSService] JSON 解析失败，事件=\(snippet)")
+                Logger.log("JSON 解析失败，事件=\(snippet)", category: .tts)
             }
             return true
         }
@@ -342,7 +346,7 @@ actor TTSService {
             }
             parseErrorCount += 1
             if parseErrorCount <= 5 {
-                print("[TTSService] 音频 base64 解码失败，已忽略事件")
+                Logger.log("音频 base64 解码失败，已忽略事件", category: .tts)
             }
         }
 
