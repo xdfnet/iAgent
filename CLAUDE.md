@@ -93,6 +93,16 @@ open -a iAgent
 - **Agent CLI**: claude
 - **字节跳动 API**: ASR 和 TTS 凭证
 
+## 项目配置
+
+| 配置项 | 值 |
+|--------|-----|
+| 最低 macOS | 26.0 |
+| Swift 版本 | 5.0 |
+| Xcode 版本 | 16.0 |
+| Bundle ID | David.iAgent |
+| 开发团队 | K9UF7A2D7Y |
+
 ## 外部脚本
 
 `scripts/welcome-home` - 路由器端脚本，检测手机回家并触发 Agent 打招呼（通过 HTTP POST 到 `/v1/agent/respond`）。当前 HTTP 服务器功能已移除，此脚本可能已不适用。
