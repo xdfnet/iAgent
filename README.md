@@ -1,8 +1,9 @@
 # iAgent
 
-![Version](https://img.shields.io/badge/version--blue)
-![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
-![License](https://img.shields.io/badge/license-MIT-green)
+[![Version](https://img.shields.io/github/v/release/xdfnet/iAgent?style=flat-square)](https://github.com/xdfnet/iAgent/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-15.0+-green.svg)](https://www.apple.com/macos/)
+[![Swift](https://img.shields.io/badge/Swift-5.0+-orange.svg)](https://swift.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 iAgent 是一款本地语音助手，运行于 macOS 菜单栏。通过语音完成日常任务——张嘴就来，不用打字。
 
