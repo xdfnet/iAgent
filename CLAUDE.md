@@ -97,8 +97,8 @@ open -a iAgent
 
 | 配置项 | 值 |
 |--------|-----|
-| 最低 macOS | 26.0 |
-| Swift 版本 | 5.0 |
+| 最低 macOS | 15.0 |
+| Swift 版本 | 6.2 |
 | Xcode 版本 | 16.0 |
 | Bundle ID | David.iAgent |
 | 开发团队 | K9UF7A2D7Y |
