@@ -195,12 +195,12 @@ actor VoiceService {
         var endSilenceFrames: Int = 28
         var prerollFrames: Int = 14
         var minSpeechFrames: Int = 12
-        var inputDeviceIndex: String = "0"
+        var stateTransitionMinDwellSeconds: Double = 0.18
+        var speechEndReopenDelta: Int = 36
 
         static var `default`: Config {
             let settings = Configuration.shared.client.continuous
             let audioSettings = Configuration.shared.client.audio
-            let clientSettings = Configuration.shared.client
             return Config(
                 sampleRate: audioSettings.sampleRate,
                 channels: audioSettings.channels,
@@ -214,7 +214,8 @@ actor VoiceService {
                 endSilenceFrames: settings.endSilenceFrames,
                 prerollFrames: settings.prerollFrames,
                 minSpeechFrames: settings.minSpeechFrames,
-                inputDeviceIndex: clientSettings.inputDeviceIndex
+                stateTransitionMinDwellSeconds: settings.stateTransitionMinDwellSeconds,
+                speechEndReopenDelta: settings.speechEndReopenDelta
             )
         }
 
@@ -223,21 +224,9 @@ actor VoiceService {
             sampleRate * frameMs / 1000 * sampleWidth * channels
         }
 
-        /// 归一化后的输入设备 ID。
-        /// 历史上配置支持 "auto" 和逗号分隔列表；当前产品路径只使用首个设备。
+        /// 输入设备始终使用系统默认设备（AudioDeviceID=0）。
         var inputDeviceID: String {
-            let trimmed = inputDeviceIndex.trimmingCharacters(in: .whitespacesAndNewlines)
-            let fallback = "0"
-
-            if trimmed.isEmpty || trimmed.lowercased() == "auto" {
-                return fallback
-            }
-
-            return trimmed
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .first ?? fallback
+            "0"
         }
     }
 
@@ -267,6 +256,8 @@ actor VoiceService {
     private var awaitingTurnCompletion = false
     private var activeCaptureSessionID = 0
     private var pendingListeningResume = false
+    private var currentState: State = .idle
+    private var lastStateTransitionAt = Date.distantPast
 
     init(config: Config = .default) {
         self.config = config
@@ -300,6 +291,8 @@ actor VoiceService {
         awaitingTurnCompletion = false
         pendingListeningResume = false
         activeCaptureSessionID += 1
+        currentState = .idle
+        lastStateTransitionAt = Date.distantPast
     }
 
     /// 启动持续监听
@@ -332,7 +325,7 @@ actor VoiceService {
         pendingListeningResume = false
         activeCaptureSessionID += 1
 
-        stateContinuation?.yield(.idle)
+        emitState(.idle, force: true)
     }
 
     func setPlaybackActive(_ isActive: Bool) {
@@ -359,7 +352,7 @@ actor VoiceService {
         if !suspended, pendingListeningResume, isRunning {
             awaitingTurnCompletion = false
             pendingListeningResume = false
-            stateContinuation?.yield(.listening)
+            emitState(.listening, force: true)
         }
     }
 
@@ -389,7 +382,7 @@ actor VoiceService {
         }
 
         Logger.log("原生音频采集已启动", category: .voice)
-        stateContinuation?.yield(.listening)
+        emitState(.listening, force: true)
 
         await captureOnNativeStream(frameStream, deviceID: deviceID, sessionID: sessionID)
 
@@ -538,7 +531,7 @@ actor VoiceService {
                     segmentPeakLevel = level
                     segmentThreshold = threshold
                     Logger.log("检测到语音！hotFrames: \(hotFrames), required: \(requiredFrames)", category: .voice)
-                    stateContinuation?.yield(.speaking)
+                    emitState(.speaking)
                 }
             } else {
                 speechFrames.append(frameData)
@@ -551,9 +544,11 @@ actor VoiceService {
                     min(max(adaptiveEndThreshold + 24, segmentThreshold - 60), max(adaptiveEndThreshold + 24, segmentPeakLevel / 2))
                 )
 
+                let reopenThreshold = effectiveEndThreshold + max(1, config.speechEndReopenDelta)
+
                 if level <= effectiveEndThreshold {
                     silenceFrames += 1
-                } else {
+                } else if level >= reopenThreshold {
                     silenceFrames = 0
                 }
 
@@ -568,7 +563,7 @@ actor VoiceService {
                     speechDetectionSuspended = true
                     awaitingTurnCompletion = true
                     pendingListeningResume = true
-                    stateContinuation?.yield(.processing)
+                    emitState(.processing, force: true)
 
                     let audioData = concatenateFrames(speechFrames)
                     let segment = VoiceSegment(
@@ -681,7 +676,7 @@ actor VoiceService {
         nativeCaptureSession = nil
         awaitingTurnCompletion = false
         pendingListeningResume = false
-        stateContinuation?.yield(.idle)
+        emitState(.idle, force: true)
     }
 
     private func reportError(_ message: String) {
@@ -690,6 +685,24 @@ actor VoiceService {
 
     private func reportDiagnostic(_ message: String) {
         diagnosticContinuation?.yield(message)
+    }
+
+    private func emitState(_ newState: State, force: Bool = false) {
+        guard force || newState != currentState else { return }
+
+        if !force {
+                let isListeningSpeakingTransition =
+                    (currentState == .listening && newState == .speaking) ||
+                    (currentState == .speaking && newState == .listening)
+            if isListeningSpeakingTransition {
+                let dwell = Date().timeIntervalSince(lastStateTransitionAt)
+                guard dwell >= config.stateTransitionMinDwellSeconds else { return }
+            }
+        }
+
+        currentState = newState
+        lastStateTransitionAt = Date()
+        stateContinuation?.yield(newState)
     }
 
     /// 当前是否正在监听

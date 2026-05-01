@@ -242,13 +242,4 @@ final class AppDelegateAndViewCoverageTests: XCTestCase {
         XCTAssertTrue(titles.contains("12:00:03 触发 arrived_home，来源 router_assoc:F6:85:C2:7F:1D:32"))
     }
 
-    func testMenuIncludesSpeakerSection() {
-        let delegate = AppDelegate()
-        delegate._setupStatusItemForTesting()
-        delegate._setupMenuForTesting()
-
-        let titles = delegate._menuItemTitlesForTesting()
-        XCTAssertTrue(titles.contains("麦克风"))
-        XCTAssertTrue(titles.contains("扬声器"))
-    }
 }

@@ -51,23 +51,23 @@ final class ConfigurationTests: XCTestCase {
     // MARK: - Bool Parsing Tests
 
     func testBoolParsing_handlesTrueFalse1Yes() {
-        XCTAssertTrue(Configuration.boolValue("true"))
-        XCTAssertTrue(Configuration.boolValue("True"))
-        XCTAssertTrue(Configuration.boolValue("TRUE"))
-        XCTAssertTrue(Configuration.boolValue("1"))
-        XCTAssertTrue(Configuration.boolValue("yes"))
-        XCTAssertTrue(Configuration.boolValue("Yes"))
-        XCTAssertTrue(Configuration.boolValue("y"))
-        XCTAssertTrue(Configuration.boolValue("on"))
+        XCTAssertEqual(Configuration.boolValue("true"), true)
+        XCTAssertEqual(Configuration.boolValue("True"), true)
+        XCTAssertEqual(Configuration.boolValue("TRUE"), true)
+        XCTAssertEqual(Configuration.boolValue("1"), true)
+        XCTAssertEqual(Configuration.boolValue("yes"), true)
+        XCTAssertEqual(Configuration.boolValue("Yes"), true)
+        XCTAssertEqual(Configuration.boolValue("y"), true)
+        XCTAssertEqual(Configuration.boolValue("on"), true)
 
-        XCTAssertFalse(Configuration.boolValue("false"))
-        XCTAssertFalse(Configuration.boolValue("False"))
-        XCTAssertFalse(Configuration.boolValue("FALSE"))
-        XCTAssertFalse(Configuration.boolValue("0"))
-        XCTAssertFalse(Configuration.boolValue("no"))
-        XCTAssertFalse(Configuration.boolValue("No"))
-        XCTAssertFalse(Configuration.boolValue("n"))
-        XCTAssertFalse(Configuration.boolValue("off"))
+        XCTAssertEqual(Configuration.boolValue("false"), false)
+        XCTAssertEqual(Configuration.boolValue("False"), false)
+        XCTAssertEqual(Configuration.boolValue("FALSE"), false)
+        XCTAssertEqual(Configuration.boolValue("0"), false)
+        XCTAssertEqual(Configuration.boolValue("no"), false)
+        XCTAssertEqual(Configuration.boolValue("No"), false)
+        XCTAssertEqual(Configuration.boolValue("n"), false)
+        XCTAssertEqual(Configuration.boolValue("off"), false)
 
         XCTAssertNil(Configuration.boolValue("invalid"))
         XCTAssertNil(Configuration.boolValue(""))
@@ -92,14 +92,15 @@ final class ConfigurationTests: XCTestCase {
                 "timeoutSeconds": 60
             ],
             "client": [
-                "inputDeviceIndex": "device-123",
                 "audio": [
                     "sampleRate": 48000,
                     "channels": 2
                 ],
                 "continuous": [
                     "frameMs": 20,
-                    "startThreshold": 1500
+                    "startThreshold": 1500,
+                    "stateTransitionMinDwellSeconds": 0.25,
+                    "speechEndReopenDelta": 48
                 ]
             ],
             "behavior": [
@@ -116,11 +117,12 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(config.textToSpeech.voiceType, "custom_voice")
         XCTAssertEqual(config.agent.workdir, "/file/workdir")
         XCTAssertEqual(config.agent.timeoutSeconds, 60)
-        XCTAssertEqual(config.client.inputDeviceIndex, "device-123")
         XCTAssertEqual(config.client.audio.sampleRate, 48000)
         XCTAssertEqual(config.client.audio.channels, 2)
         XCTAssertEqual(config.client.continuous.frameMs, 20)
         XCTAssertEqual(config.client.continuous.startThreshold, 1500)
+        XCTAssertEqual(config.client.continuous.stateTransitionMinDwellSeconds, 0.25)
+        XCTAssertEqual(config.client.continuous.speechEndReopenDelta, 48)
         XCTAssertTrue(config.behavior.enabled)
         XCTAssertEqual(config.behavior.routerSSHHost, "custom-router")
         XCTAssertEqual(config.behavior.pollIntervalSeconds, 10.0)
@@ -154,13 +156,11 @@ final class ConfigurationTests: XCTestCase {
         config.textToSpeech.appId = "updated-app-id"
         config.agent.workdir = "/updated/workdir"
         config.behavior.enabled = false
-        config.client.inputDeviceIndex = "updated-device"
 
         XCTAssertEqual(config.speechToText.apiKey, "updated-api-key")
         XCTAssertEqual(config.textToSpeech.appId, "updated-app-id")
         XCTAssertEqual(config.agent.workdir, "/updated/workdir")
         XCTAssertFalse(config.behavior.enabled)
-        XCTAssertEqual(config.client.inputDeviceIndex, "updated-device")
     }
 
     func testReload_refreshesCachedValues() {
@@ -217,27 +217,28 @@ final class ConfigurationTests: XCTestCase {
         let settings = ClientContinuousSettings()
         XCTAssertFalse(settings.interruptOnSpeech)
         XCTAssertEqual(settings.frameMs, 30)
-        XCTAssertEqual(settings.startThreshold, 1300)
-        XCTAssertEqual(settings.playingStartThreshold, 2800)
-        XCTAssertEqual(settings.endThreshold, 520)
-        XCTAssertEqual(settings.startFrames, 5)
-        XCTAssertEqual(settings.playingStartFrames, 8)
-        XCTAssertEqual(settings.endSilenceFrames, 22)
+        XCTAssertEqual(settings.startThreshold, 1800)
+        XCTAssertEqual(settings.playingStartThreshold, 4200)
+        XCTAssertEqual(settings.endThreshold, 650)
+        XCTAssertEqual(settings.startFrames, 7)
+        XCTAssertEqual(settings.playingStartFrames, 10)
+        XCTAssertEqual(settings.endSilenceFrames, 20)
         XCTAssertEqual(settings.prerollFrames, 16)
         XCTAssertEqual(settings.minSpeechFrames, 10)
-        XCTAssertEqual(settings.postInterruptCooldownSeconds, 1.2)
+        XCTAssertEqual(settings.postInterruptCooldownSeconds, 1.5)
+        XCTAssertEqual(settings.stateTransitionMinDwellSeconds, 0.18)
+        XCTAssertEqual(settings.speechEndReopenDelta, 36)
     }
 
     func testClientSettings_defaultValues() {
         let settings = ClientSettings()
-        XCTAssertEqual(settings.inputDeviceIndex, "0")
-        XCTAssertEqual(settings.outputDeviceUID, "")
         XCTAssertNotNil(settings.audio)
         XCTAssertNotNil(settings.continuous)
     }
 
     // MARK: - Codable Tests
 
+    @MainActor
     func testConfiguration_codableRoundTrip() throws {
         var config = Configuration()
         config.speechToText.apiKey = "test-key"
@@ -255,6 +256,7 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(decoded.agent.workdir, "/test/dir")
     }
 
+    @MainActor
     func testBehaviorSettings_codableRoundTrip() throws {
         var settings = BehaviorSettings()
         settings.enabled = false

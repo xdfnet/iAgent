@@ -186,7 +186,6 @@ actor BehaviorService {
                 lastKnownPhonePresence = true
                 lastDecisionSummary = "手机在线已确认"
                 recordEvent("手机在线确认完成")
-                maybeTriggerArrivedHome(source: source)
             } else if !isPresent, consecutiveOfflineDetections >= offlineThreshold {
                 lastKnownPhonePresence = false
                 lastDecisionSummary = "手机当前离线"

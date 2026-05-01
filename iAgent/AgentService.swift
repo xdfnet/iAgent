@@ -157,7 +157,10 @@ actor AgentService {
             process.executableURL = URL(fileURLWithPath: launchCommand.executablePath)
             process.arguments = launchCommand.arguments
             process.currentDirectoryURL = URL(fileURLWithPath: config.workdir)
-            process.environment = ExecutableLocator.runtimeEnvironment()
+            var environment = ExecutableLocator.runtimeEnvironment()
+            // 避免 iAgent 内部调用 Agent 时触发外部 Stop Hook 二次播报
+            environment["ISPEAK_SKIP"] = "1"
+            process.environment = environment
 
             let outputPipe = Pipe()
             let errorPipe = Pipe()

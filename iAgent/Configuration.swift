@@ -29,17 +29,6 @@ struct Configuration: Codable, Sendable {
         store.reload()
     }
 
-    nonisolated static func updateClientInputDeviceIndex(_ inputDeviceIndex: String) {
-        store.update {
-            $0.client.inputDeviceIndex = inputDeviceIndex
-        }
-    }
-
-    nonisolated static func updateClientOutputDeviceUID(_ outputDeviceUID: String) {
-        store.update {
-            $0.client.outputDeviceUID = outputDeviceUID
-        }
-    }
 }
 
 enum ConfigurationError: Error, LocalizedError {
@@ -181,19 +170,23 @@ struct ClientContinuousSettings: Codable, Sendable {
     var prerollFrames: Int
     var minSpeechFrames: Int
     var postInterruptCooldownSeconds: Double
+    var stateTransitionMinDwellSeconds: Double
+    var speechEndReopenDelta: Int
 
     nonisolated init(
         interruptOnSpeech: Bool = false,
         frameMs: Int = 30,
-        startThreshold: Int = 1300,
-        playingStartThreshold: Int = 2800,
-        endThreshold: Int = 520,
-        startFrames: Int = 5,
-        playingStartFrames: Int = 8,
-        endSilenceFrames: Int = 22,
+        startThreshold: Int = 1800,
+        playingStartThreshold: Int = 4200,
+        endThreshold: Int = 650,
+        startFrames: Int = 7,
+        playingStartFrames: Int = 10,
+        endSilenceFrames: Int = 20,
         prerollFrames: Int = 16,
         minSpeechFrames: Int = 10,
-        postInterruptCooldownSeconds: Double = 1.2
+        postInterruptCooldownSeconds: Double = 1.5,
+        stateTransitionMinDwellSeconds: Double = 0.18,
+        speechEndReopenDelta: Int = 36
     ) {
         self.interruptOnSpeech = interruptOnSpeech
         self.frameMs = frameMs
@@ -206,25 +199,21 @@ struct ClientContinuousSettings: Codable, Sendable {
         self.prerollFrames = prerollFrames
         self.minSpeechFrames = minSpeechFrames
         self.postInterruptCooldownSeconds = postInterruptCooldownSeconds
+        self.stateTransitionMinDwellSeconds = stateTransitionMinDwellSeconds
+        self.speechEndReopenDelta = speechEndReopenDelta
     }
 }
 
 // MARK: - 客户端配置
 
 struct ClientSettings: Codable, Sendable {
-    var inputDeviceIndex: String
-    var outputDeviceUID: String
     var audio: ClientAudioSettings
     var continuous: ClientContinuousSettings
 
     nonisolated init(
-        inputDeviceIndex: String = "0",
-        outputDeviceUID: String = "",
         audio: ClientAudioSettings = ClientAudioSettings(),
         continuous: ClientContinuousSettings = ClientContinuousSettings()
     ) {
-        self.inputDeviceIndex = inputDeviceIndex
-        self.outputDeviceUID = outputDeviceUID
         self.audio = audio
         self.continuous = continuous
     }
@@ -331,11 +320,67 @@ private struct ConfigurationLoader {
         }
 
         do {
-            let data = try JSONEncoder().encode(config)
+            let object = makeJSONObject(from: config)
+            let data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
             try data.write(to: fileURL, options: .atomic)
         } catch {
             print("[Configuration] 保存配置文件失败: \(error.localizedDescription)")
         }
+    }
+
+    private nonisolated static func makeJSONObject(from config: Configuration) -> [String: Any] {
+        [
+            "speechToText": [
+                "apiKey": config.speechToText.apiKey,
+                "flashUrl": config.speechToText.flashUrl,
+                "resourceId": config.speechToText.resourceId
+            ],
+            "textToSpeech": [
+                "appId": config.textToSpeech.appId,
+                "accessToken": config.textToSpeech.accessToken,
+                "endpoint": config.textToSpeech.endpoint,
+                "resourceId": config.textToSpeech.resourceId,
+                "voiceType": config.textToSpeech.voiceType,
+                "volume": config.textToSpeech.volume
+            ],
+            "agent": [
+                "workdir": config.agent.workdir,
+                "timeoutSeconds": config.agent.timeoutSeconds
+            ],
+            "behavior": [
+                "enabled": config.behavior.enabled,
+                "routerSSHHost": config.behavior.routerSSHHost,
+                "monitoredPhoneMAC": config.behavior.monitoredPhoneMAC,
+                "monitoredWiFiInterfaces": config.behavior.monitoredWiFiInterfaces,
+                "pollIntervalSeconds": config.behavior.pollIntervalSeconds,
+                "contextTTLSeconds": config.behavior.contextTTLSeconds,
+                "cooldownSeconds": config.behavior.cooldownSeconds,
+                "requiredOnlineConfirmations": config.behavior.requiredOnlineConfirmations,
+                "requiredOfflineConfirmations": config.behavior.requiredOfflineConfirmations
+            ],
+            "client": [
+                "audio": [
+                    "sampleRate": config.client.audio.sampleRate,
+                    "channels": config.client.audio.channels,
+                    "sampleWidth": config.client.audio.sampleWidth
+                ],
+                "continuous": [
+                    "interruptOnSpeech": config.client.continuous.interruptOnSpeech,
+                    "frameMs": config.client.continuous.frameMs,
+                    "startThreshold": config.client.continuous.startThreshold,
+                    "playingStartThreshold": config.client.continuous.playingStartThreshold,
+                    "endThreshold": config.client.continuous.endThreshold,
+                    "startFrames": config.client.continuous.startFrames,
+                    "playingStartFrames": config.client.continuous.playingStartFrames,
+                    "endSilenceFrames": config.client.continuous.endSilenceFrames,
+                    "prerollFrames": config.client.continuous.prerollFrames,
+                    "minSpeechFrames": config.client.continuous.minSpeechFrames,
+                    "postInterruptCooldownSeconds": config.client.continuous.postInterruptCooldownSeconds,
+                    "stateTransitionMinDwellSeconds": config.client.continuous.stateTransitionMinDwellSeconds,
+                    "speechEndReopenDelta": config.client.continuous.speechEndReopenDelta
+                ]
+            ]
+        ]
     }
 }
 
@@ -363,7 +408,7 @@ private final class ConfigurationStore: @unchecked Sendable {
     }
 }
 
-private extension Configuration {
+extension Configuration {
     nonisolated mutating func apply(fileOverride: [String: Any]) {
         if let speechToText = fileOverride["speechToText"] as? [String: Any] {
             self.speechToText.apply(fileOverride: speechToText)
@@ -396,9 +441,6 @@ private extension Configuration {
         agent.workdir = environment["IAGENT_AGENT_WORKDIR"]?.trimmedNonEmpty ?? agent.workdir
         agent.timeoutSeconds = environment["IAGENT_AGENT_TIMEOUT_SECONDS"].flatMap(Int.init) ?? agent.timeoutSeconds
 
-        client.inputDeviceIndex = environment["IAGENT_CLIENT_INPUT_DEVICE_UID"]?.trimmedNonEmpty ?? client.inputDeviceIndex
-        client.outputDeviceUID = environment["IAGENT_CLIENT_OUTPUT_DEVICE_UID"]?.trimmedNonEmpty ?? client.outputDeviceUID
-
         behavior.enabled = environment["IAGENT_BEHAVIOR_ENABLED"].flatMap(Self.boolValue) ?? behavior.enabled
         behavior.routerSSHHost = environment["IAGENT_BEHAVIOR_ROUTER_SSH_HOST"]?.trimmedNonEmpty ?? behavior.routerSSHHost
         behavior.monitoredPhoneMAC = environment["IAGENT_BEHAVIOR_PHONE_MAC"]?.trimmedNonEmpty ?? behavior.monitoredPhoneMAC
@@ -408,6 +450,9 @@ private extension Configuration {
         behavior.cooldownSeconds = environment["IAGENT_BEHAVIOR_COOLDOWN_SECONDS"].flatMap(Double.init) ?? behavior.cooldownSeconds
         behavior.requiredOnlineConfirmations = environment["IAGENT_BEHAVIOR_REQUIRED_ONLINE_CONFIRMATIONS"].flatMap(Int.init) ?? behavior.requiredOnlineConfirmations
         behavior.requiredOfflineConfirmations = environment["IAGENT_BEHAVIOR_REQUIRED_OFFLINE_CONFIRMATIONS"].flatMap(Int.init) ?? behavior.requiredOfflineConfirmations
+
+        client.continuous.stateTransitionMinDwellSeconds = environment["IAGENT_CLIENT_STATE_TRANSITION_MIN_DWELL_SECONDS"].flatMap(Double.init) ?? client.continuous.stateTransitionMinDwellSeconds
+        client.continuous.speechEndReopenDelta = environment["IAGENT_CLIENT_SPEECH_END_REOPEN_DELTA"].flatMap(Int.init) ?? client.continuous.speechEndReopenDelta
     }
 
     nonisolated static func boolValue(_ value: String) -> Bool? {
@@ -463,8 +508,6 @@ private extension BehaviorSettings {
 
 private extension ClientSettings {
     nonisolated mutating func apply(fileOverride: [String: Any]) {
-        inputDeviceIndex = fileOverride.stringValue(for: "inputDeviceIndex") ?? inputDeviceIndex
-        outputDeviceUID = fileOverride.stringValue(for: "outputDeviceUID") ?? outputDeviceUID
         if let audio = fileOverride["audio"] as? [String: Any] {
             self.audio.apply(fileOverride: audio)
         }
@@ -495,6 +538,8 @@ private extension ClientContinuousSettings {
         prerollFrames = fileOverride.intValue(for: "prerollFrames") ?? prerollFrames
         minSpeechFrames = fileOverride.intValue(for: "minSpeechFrames") ?? minSpeechFrames
         postInterruptCooldownSeconds = fileOverride.doubleValue(for: "postInterruptCooldownSeconds") ?? postInterruptCooldownSeconds
+        stateTransitionMinDwellSeconds = fileOverride.doubleValue(for: "stateTransitionMinDwellSeconds") ?? stateTransitionMinDwellSeconds
+        speechEndReopenDelta = fileOverride.intValue(for: "speechEndReopenDelta") ?? speechEndReopenDelta
     }
 }
 

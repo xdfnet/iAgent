@@ -62,7 +62,7 @@ xcodebuild -project iAgent.xcodeproj -scheme iAgent -destination 'platform=macOS
 - `speechToText`: ASR API 凭证
 - `textToSpeech`: TTS API 凭证
 - `agent`: Claude Code 工作目录、超时设置
-- `client`: 麦克风设备 ID、VAD 参数
+- `client`: 音频采样参数、VAD 参数（设备选择固定跟随系统默认）
 
 运行时按“环境变量 -> JSON 配置文件 -> 代码默认值”优先级加载。
 修改配置可直接编辑 `iAgent/Configuration.swift`，或使用外部配置覆盖。

@@ -306,9 +306,21 @@ final class BehaviorServiceCoverageTests: XCTestCase {
 
         await service._pollPresenceOnceForTesting()
 
-        let context = await service._currentContextForTesting()
-        XCTAssertNotNil(context)
-        XCTAssertEqual(context?.scene, .arrivedHome)
+        let contextAfterColdStart = await service._currentContextForTesting()
+        XCTAssertNil(contextAfterColdStart)
+
+        await service._setPresenceCheckOverrideForTesting { _ in false }
+        await service._pollPresenceOnceForTesting()
+        await service._pollPresenceOnceForTesting()
+
+        await service._setPresenceCheckOverrideForTesting { _ in true }
+        await service._pollPresenceOnceForTesting()
+        await service._pollPresenceOnceForTesting()
+        await service._pollPresenceOnceForTesting()
+
+        let contextAfterReturnHome = await service._currentContextForTesting()
+        XCTAssertNotNil(contextAfterReturnHome)
+        XCTAssertEqual(contextAfterReturnHome?.scene, .arrivedHome)
     }
 
     func testDiagnosticsSnapshot_format() async {

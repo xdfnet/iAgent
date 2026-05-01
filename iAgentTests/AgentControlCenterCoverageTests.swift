@@ -499,60 +499,6 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         center._setRequiredAgentExecutableNameOverrideForTesting(nil)
     }
 
-    func testSelectInputDevice_validDevice() async {
-        let center = AgentControlCenter()
-        let devices = center.availableInputDevices()
-
-        if let firstDevice = devices.first {
-            do {
-                try await center.selectInputDevice(uid: firstDevice.uid)
-                XCTAssertTrue(center.statusMessage.contains(firstDevice.name))
-            } catch {
-                XCTFail("selectInputDevice should not throw for valid device: \(error)")
-            }
-        } else {
-            XCTAssertTrue(devices.isEmpty, "No input devices available to test")
-        }
-    }
-
-    func testSelectInputDevice_invalidDevice() async {
-        let center = AgentControlCenter()
-
-        do {
-            try await center.selectInputDevice(uid: "invalid-device-uid-that-does-not-exist")
-            XCTFail("selectInputDevice should throw for invalid device")
-        } catch {
-            XCTAssertTrue(error.localizedDescription.contains("deviceNotFound") || error.localizedDescription.contains("未找到"))
-        }
-    }
-
-    func testSelectOutputDevice_validDevice() async {
-        let center = AgentControlCenter()
-        let devices = center.availableOutputDevices()
-
-        if let firstDevice = devices.first {
-            do {
-                try await center.selectOutputDevice(uid: firstDevice.uid)
-                XCTAssertTrue(center.statusMessage.contains(firstDevice.name))
-            } catch {
-                XCTFail("selectOutputDevice should not throw for valid device: \(error)")
-            }
-        } else {
-            XCTAssertTrue(devices.isEmpty, "No output devices available to test")
-        }
-    }
-
-    func testSelectOutputDevice_invalidDevice() async {
-        let center = AgentControlCenter()
-
-        do {
-            try await center.selectOutputDevice(uid: "invalid-device-uid-that-does-not-exist")
-            XCTFail("selectOutputDevice should throw for invalid device")
-        } catch {
-            XCTAssertTrue(error.localizedDescription.contains("outputDeviceNotFound") || error.localizedDescription.contains("未找到"))
-        }
-    }
-
     func testRefreshStatus_updatesAllStatusItems() async {
         let center = AgentControlCenter()
         center._setRequiredAgentExecutableNameOverrideForTesting("sh")
@@ -624,13 +570,4 @@ final class AgentControlCenterCoverageTests: XCTestCase {
         XCTAssertNotNil(snapshot.eventLines)
     }
 
-    func testAvailableDevices_returnsDeviceLists() {
-        let center = AgentControlCenter()
-
-        let inputDevices = center.availableInputDevices()
-        let outputDevices = center.availableOutputDevices()
-
-        XCTAssertNotNil(inputDevices)
-        XCTAssertNotNil(outputDevices)
-    }
 }

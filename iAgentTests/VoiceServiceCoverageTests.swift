@@ -60,8 +60,7 @@ final class VoiceServiceCoverageTests: XCTestCase {
             playingStartFrames: 2,
             endSilenceFrames: 2,
             prerollFrames: 1,
-            minSpeechFrames: 3,
-            inputDeviceIndex: "0"
+            minSpeechFrames: 3
         )
     }
 
@@ -85,7 +84,7 @@ final class VoiceServiceCoverageTests: XCTestCase {
         XCTAssertEqual(config.inputDeviceID, "0")
     }
 
-    func testInputDeviceIDUsesConfiguredValue() {
+    func testInputDeviceIDAlwaysUsesSystemDefault() {
         let config = VoiceService.Config(
             sampleRate: 16000,
             channels: 1,
@@ -98,13 +97,12 @@ final class VoiceServiceCoverageTests: XCTestCase {
             playingStartFrames: 10,
             endSilenceFrames: 28,
             prerollFrames: 14,
-            minSpeechFrames: 12,
-            inputDeviceIndex: "2"
+            minSpeechFrames: 12
         )
-        XCTAssertEqual(config.inputDeviceID, "2")
+        XCTAssertEqual(config.inputDeviceID, "0")
     }
 
-    func testInputDeviceIDFallsBackToFirstLegacyConfiguredValue() {
+    func testInputDeviceIDIgnoresLegacyCommaSeparatedValue() {
         let config = VoiceService.Config(
             sampleRate: 16000,
             channels: 1,
@@ -117,10 +115,9 @@ final class VoiceServiceCoverageTests: XCTestCase {
             playingStartFrames: 10,
             endSilenceFrames: 28,
             prerollFrames: 14,
-            minSpeechFrames: 12,
-            inputDeviceIndex: "2, 2, 5"
+            minSpeechFrames: 12
         )
-        XCTAssertEqual(config.inputDeviceID, "2")
+        XCTAssertEqual(config.inputDeviceID, "0")
     }
 
     func testInputDeviceIDAutoKeepsFallbackValue() {
@@ -136,8 +133,7 @@ final class VoiceServiceCoverageTests: XCTestCase {
             playingStartFrames: 10,
             endSilenceFrames: 28,
             prerollFrames: 14,
-            minSpeechFrames: 12,
-            inputDeviceIndex: "auto"
+            minSpeechFrames: 12
         )
         XCTAssertEqual(config.inputDeviceID, "0")
     }
@@ -214,8 +210,7 @@ final class VoiceServiceCoverageTests: XCTestCase {
             playingStartFrames: 2,
             endSilenceFrames: 2,
             prerollFrames: 1,
-            minSpeechFrames: 3,
-            inputDeviceIndex: "0"
+            minSpeechFrames: 3
         )
 
         let service = VoiceService(config: config)
@@ -288,8 +283,7 @@ final class VoiceServiceCoverageTests: XCTestCase {
             playingStartFrames: 8,
             endSilenceFrames: 22,
             prerollFrames: 16,
-            minSpeechFrames: 10,
-            inputDeviceIndex: "0"
+            minSpeechFrames: 10
         )
 
         let service = VoiceService(config: config)
@@ -322,8 +316,7 @@ final class VoiceServiceCoverageTests: XCTestCase {
             playingStartFrames: 8,
             endSilenceFrames: 22,
             prerollFrames: 16,
-            minSpeechFrames: 10,
-            inputDeviceIndex: "0"
+            minSpeechFrames: 10
         )
 
         let service = VoiceService(config: config)

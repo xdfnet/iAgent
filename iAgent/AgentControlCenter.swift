@@ -267,7 +267,6 @@ final class AgentControlCenter {
     private var isProcessingBehaviorTurn = false
     private var isRestartingVoiceCaptureAfterTurnProcessing = false
     private var isRestartingVoiceCaptureAfterPlayback = false
-    private var deviceSwitchStatusResetTask: Task<Void, Never>?
     var testHooks: TestHooks?
 #if DEBUG
     private var requiredAgentExecutableNameOverrideForTesting: String?
@@ -370,7 +369,6 @@ final class AgentControlCenter {
             _ = Configuration.reload()
             try await ensureMicrophoneAccess()
             try validateRuntimeDependencies()
-            try applyConfiguredAudioDevicePreferencesIfNeeded()
             await behaviorService.stopMonitoring(clearContext: false)
             await behaviorService.startMonitoring()
             Logger.log("依赖验证通过", category: .control)
@@ -415,9 +413,6 @@ final class AgentControlCenter {
         behaviorObserverTask = nil
         voiceTask?.cancel()
         voiceTask = nil
-        deviceSwitchStatusResetTask?.cancel()
-        deviceSwitchStatusResetTask = nil
-
         await behaviorService.stopMonitoring(clearContext: true)
         await voiceService.stopListening()
         await playbackService.stop()
@@ -440,50 +435,6 @@ final class AgentControlCenter {
 
     func behaviorDiagnosticsSnapshot() async -> BehaviorService.DiagnosticsSnapshot {
         await behaviorService.diagnosticsSnapshot()
-    }
-
-    func availableInputDevices() -> [AudioInputDeviceManager.InputDevice] {
-        (try? AudioInputDeviceManager.inputDevices()) ?? []
-    }
-
-    func availableOutputDevices() -> [AudioInputDeviceManager.OutputDevice] {
-        (try? AudioInputDeviceManager.outputDevices()) ?? []
-    }
-
-    func selectInputDevice(uid: String) async throws {
-        let devices = try AudioInputDeviceManager.inputDevices()
-        guard let target = devices.first(where: { $0.uid == uid }) else {
-            throw AudioInputDeviceManager.DeviceError.deviceNotFound(uid)
-        }
-
-        try AudioInputDeviceManager.setDefaultInputDevice(uid: uid)
-        Configuration.updateClientInputDeviceIndex(uid)
-        _ = Configuration.reload()
-        updateRuntimeDescription()
-
-        try await rebuildAudioDevicesIfNeeded()
-
-        statusMessage = "麦克风已切换: \(target.name)"
-        scheduleDeviceSwitchStatusReset()
-        Logger.log("麦克风已切换: \(target.name), uid=\(uid)", category: .control)
-    }
-
-    func selectOutputDevice(uid: String) async throws {
-        let devices = try AudioInputDeviceManager.outputDevices()
-        guard let target = devices.first(where: { $0.uid == uid }) else {
-            throw AudioInputDeviceManager.DeviceError.outputDeviceNotFound(uid)
-        }
-
-        try AudioInputDeviceManager.setDefaultOutputDevice(uid: uid)
-        Configuration.updateClientOutputDeviceUID(uid)
-        _ = Configuration.reload()
-        updateRuntimeDescription()
-
-        try await rebuildAudioDevicesIfNeeded()
-
-        statusMessage = "扬声器已切换: \(target.name)"
-        scheduleDeviceSwitchStatusReset()
-        Logger.log("扬声器已切换: \(target.name), uid=\(uid)", category: .control)
     }
 
     func stopPlayback() {
@@ -559,49 +510,6 @@ final class AgentControlCenter {
             .first(where: \.isDefault)?
             .name) ?? "系统默认"
         runtimeDescription = "claude: \(agentPath) | mic: \(microphoneName) | spk: \(speakerName)"
-    }
-
-    private func applyConfiguredAudioDevicePreferencesIfNeeded() throws {
-        let configuredValue = Configuration.shared.client.inputDeviceIndex
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if !configuredValue.isEmpty, configuredValue != "0", configuredValue.lowercased() != "auto" {
-            let currentDefaultUID = try AudioInputDeviceManager.defaultInputDeviceUID()
-            if currentDefaultUID != configuredValue {
-                try AudioInputDeviceManager.setDefaultInputDevice(uid: configuredValue)
-            }
-        }
-
-        let configuredOutputUID = Configuration.shared.client.outputDeviceUID
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if !configuredOutputUID.isEmpty {
-            let currentOutputUID = try AudioInputDeviceManager.defaultOutputDeviceUID()
-            if currentOutputUID != configuredOutputUID {
-                try AudioInputDeviceManager.setDefaultOutputDevice(uid: configuredOutputUID)
-            }
-        }
-    }
-
-    private func rebuildAudioDevicesIfNeeded() async throws {
-        guard isServiceRunning else { return }
-
-        await playbackService.stop()
-        await voiceService.stopListening()
-        try await voiceService.startListening()
-    }
-
-    private func scheduleDeviceSwitchStatusReset() {
-        deviceSwitchStatusResetTask?.cancel()
-        deviceSwitchStatusResetTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                // 只有当前状态仍是设备切换消息时才重置，避免覆盖其他状态
-                let current = self?.statusMessage ?? ""
-                if current.hasPrefix("麦克风已切换") || current.hasPrefix("扬声器已切换") {
-                    self?.statusMessage = "VAD 监听中"
-                }
-            }
-        }
     }
 
     private var requiredAgentExecutableName: String {

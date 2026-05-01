@@ -155,7 +155,7 @@ push: _require_msg _update_version install package
 	@if git diff --quiet && git diff --cached --quiet; then \
 		echo "$(CYAN)没有变更需要提交$(NC)"; \
 	else \
-		git add .; \
+		git add iAgent iAgentTests iAgent.xcodeproj README.md Makefile LICENSE Docs scripts AGENTS.md CLAUDE.md; \
 		git commit -m "$(MSG)"; \
 		echo "$(GREEN)提交完成: $(MSG)$(NC)"; \
 		git push; \

@@ -80,15 +80,23 @@ iAgent/
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `startThreshold` | 1300 | 开口阈值 |
-| `playingStartThreshold` | 2800 | 播放中开口阈值 |
-| `endThreshold` | 520 | 静音结束阈值 |
-| `startFrames` | 5 | 连续超过阈值帧数 |
-| `playingStartFrames` | 8 | 播放中触发所需帧数 |
-| `endSilenceFrames` | 22 | 静音帧数后结束录音 |
+| `startThreshold` | 1800 | 开口阈值 |
+| `playingStartThreshold` | 4200 | 播放中开口阈值 |
+| `endThreshold` | 650 | 静音结束阈值 |
+| `startFrames` | 7 | 连续超过阈值帧数 |
+| `playingStartFrames` | 10 | 播放中触发所需帧数 |
+| `endSilenceFrames` | 20 | 静音帧数后结束录音 |
 | `prerollFrames` | 16 | 预留帧数，避免句首截断 |
 | `minSpeechFrames` | 10 | 最短语音帧数 |
 | `interruptOnSpeech` | false | 说话时是否打断播放 |
+| `stateTransitionMinDwellSeconds` | 0.18 | `listening/speaking` 状态切换最短停留时间（防抖动） |
+| `speechEndReopenDelta` | 36 | 语音结束判定迟滞带（结束阈值恢复增量） |
+
+### 音频设备策略
+
+- iAgent 不再提供应用内手动切换输入/输出设备。
+- 采集与播放始终使用 macOS 当前系统默认输入/输出设备。
+- 如需切换设备，请在系统设置或菜单栏音量设备菜单中调整默认设备。
 
 ## 技术实现
 
@@ -117,4 +125,4 @@ iAgent/
 
 ## License
 
-Personal use only.
+MIT
